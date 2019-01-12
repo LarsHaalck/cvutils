@@ -1,28 +1,55 @@
 #include "featureDetector.h"
 
+#include <fstream>
 #include <iostream>
 
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+
 namespace cvutils
 {
 FeatureDetector::FeatureDetector(const std::string& inFolder,
-        const std::string& outFolder, const std::string& ftFile)
+    const std::string& outFolder, const std::string& txtFile,
+    const std::string& ftFile)
     : mInFolder(inFolder)
-      , mOutFolder(outFolder)
-      , mFtFile(ftFile)
+    , mOutFolder(outFolder)
+    , mHasTxtFile(!txtFile.empty())
+    , mTxtFile(txtFile)
+    , mFtFile(ftFile)
 {
 
+    if (!std::filesystem::exists(mInFolder)
+        || !std::filesystem::is_directory(mInFolder))
+    {
+        throw std::filesystem::filesystem_error("Input folder does not exist",
+            mInFolder, std::make_error_code(std::errc::no_such_file_or_directory));
+    }
+
+    std::filesystem::create_directory(mOutFolder);
+
+    if (mHasTxtFile && (!std::filesystem::exists(mTxtFile)
+        || !std::filesystem::is_regular_file(mTxtFile)))
+    {
+        throw std::filesystem::filesystem_error("Txt file does not exist", mTxtFile,
+            std::make_error_code(std::errc::no_such_file_or_directory));
+    }
+
+    if (!std::filesystem::exists(mFtFile)
+        || !std::filesystem::is_regular_file(mFtFile))
+    {
+        throw std::filesystem::filesystem_error("Feature file does not exist", mFtFile,
+            std::make_error_code(std::errc::no_such_file_or_directory));
+    }
 }
 
 void FeatureDetector::run()
 {
     auto ftPtr = getFtPtr();
 
-    std::vector<std::string> files;
-    cv::glob(mInFolder, files, false);
+
+    auto files = getImageFiles();
     for (const auto& file : files)
     {
         std::cout << "Processing file: " << file << std::endl;
@@ -35,26 +62,45 @@ void FeatureDetector::run()
         cv::Mat descriptors;
         ftPtr->compute(img, features, descriptors);
 
-        std::string fileName = file.substr(0, file.find_last_of("."));
-        auto lastSlash = fileName.find_last_of("/");
-        if (lastSlash != std::string::npos)
-            fileName = fileName.substr(lastSlash);
-
-        cv::FileStorage fsFt(mOutFolder + '/' + fileName + "-feat.yml",
+        std::filesystem::path imgStem(file);
+        imgStem = mOutFolder / imgStem.stem();
+        cv::FileStorage fsFt(imgStem.string() + "-feat.yml",
             cv::FileStorage::WRITE);
-        std::cout << "writing to " << mOutFolder + '/' + fileName + "-feat.yml" << std::endl;
+        std::cout << "writing to " << imgStem.string() + "-feat.yml" << std::endl;
         if (!fsFt.isOpened())
         {
             std::cout << "Could not open" << std::endl;
         }
         cv::write(fsFt, "pts", features);
 
-        cv::FileStorage fsDesc(mOutFolder + '/' + fileName + "-desc.yml",
+        cv::FileStorage fsDesc(imgStem.string() + "-desc.yml",
             cv::FileStorage::WRITE);
         cv::write(fsDesc, "desc", descriptors);
-
     }
 }
+
+std::vector<std::string> FeatureDetector::getImageFiles()
+{
+    std::vector<std::string> files;
+    if (!mHasTxtFile)
+        cv::glob(mInFolder.string(), files, false);
+    else
+    {
+        std::ifstream stream(mTxtFile.string());
+        std::string currLine;
+        while(std::getline(stream, currLine))
+        {
+            if (!currLine.empty())
+            {
+                std::filesystem::path imgPath(currLine);
+                files.push_back((mInFolder / imgPath).string());
+            }
+        }
+    }
+
+    return files;
+}
+
 cv::Ptr<cv::Feature2D> FeatureDetector::getFtPtr()
 {
     cv::FileStorage fs;

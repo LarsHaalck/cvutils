@@ -1,11 +1,10 @@
 #ifndef CVUTILS_FEATURE_DETECTOR_H
 #define CVUTILS_FEATURE_DETECTOR_H
 
+#include <filesystem>
 #include <string>
 
 #include <opencv2/core.hpp>
-//#include <opencv2/features2d.hpp>
-//#include <opencv2/xfeatures2d.hpp>
 
 // forward declarations
 namespace cv
@@ -18,14 +17,18 @@ namespace cvutils
 class FeatureDetector
 {
     private:
-        std::string mInFolder;
-        std::string mOutFolder;
-        std::string mFtFile;
+        std::filesystem::path mInFolder;
+        std::filesystem::path mOutFolder;
+
+        bool mHasTxtFile;
+        std::filesystem::path mTxtFile;
+        std::filesystem::path mFtFile;
     public:
-        FeatureDetector(const std::string& inFolder,
-            const std::string& outFolder, const std::string& ftFile);
+        FeatureDetector(const std::string& inFolder, const std::string& outFolder,
+            const std::string& txtFile, const std::string& ftFile);
         void run();
     private:
+        std::vector<std::string> getImageFiles();
         cv::Ptr<cv::Feature2D> getFtPtr();
         cv::Ptr<cv::Feature2D> getORBPtr(const cv::FileStorage& fs);
 };

@@ -19,4 +19,5 @@ target_link_libraries(ftComp
     opencv_highgui
     opencv_imgproc
     opencv_imgcodecs
+    stdc++fs
 )

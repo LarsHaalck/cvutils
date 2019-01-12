@@ -8,11 +8,13 @@
 int main(int argc, char** argv)
 {
     std::string inFolder, outFolder;
-    std::string ftFile;
+    std::string txtFile, ftFile;
 
     cxxopts::Options options("ftComp", "Feature computation + export helper");
     options.add_options()
         ("i,in", "image directory", cxxopts::value(inFolder))
+        ("t, txt", "txt file containing used images, omit if all should be used",
+            cxxopts::value(txtFile))
         ("o,out", "out directory for saved features", cxxopts::value(outFolder))
         ("f,featureFile", "yml file containing the feature point info",
             cxxopts::value(ftFile));
@@ -26,7 +28,13 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    cvutils::FeatureDetector ftDetect(inFolder, outFolder, ftFile);
+    if (result.count("txtFile") != 1)
+    {
+        std::cout << "Omitted txt file. All Images in image directory will be used"
+            << std::endl;
+    }
+
+    cvutils::FeatureDetector ftDetect(inFolder, outFolder, txtFile, ftFile);
     ftDetect.run();
 
 
