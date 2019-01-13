@@ -39,6 +39,7 @@ private:
     QPushButton* mPrev;
     QPushButton* mNext;
     std::vector<cv::Mat> mImgs;
+    float mScale;
     size_t mCurrImg;
 
     void populateScene(const QString& imgDir, const QString& txtFile,

@@ -9,6 +9,7 @@ int main(int argc, char** argv)
 {
     std::string inFolder, outFolder;
     std::string txtFile, ftFile;
+    float scale = 1.0f;
 
     cxxopts::Options options("ftComp", "Feature computation + export helper");
     options.add_options()
@@ -17,7 +18,8 @@ int main(int argc, char** argv)
             cxxopts::value(txtFile))
         ("o,out", "out directory for saved features", cxxopts::value(outFolder))
         ("f,featureFile", "yml file containing the feature point info",
-            cxxopts::value(ftFile));
+            cxxopts::value(ftFile))
+        ("s,scale", "scale of the image (omit if scale = 1)", cxxopts::value(scale));
 
     auto result = options.parse(argc, argv);
     if (result.count("in") != 1
@@ -34,7 +36,7 @@ int main(int argc, char** argv)
             << std::endl;
     }
 
-    cvutils::FeatureDetector ftDetect(inFolder, outFolder, txtFile, ftFile);
+    cvutils::FeatureDetector ftDetect(inFolder, outFolder, txtFile, ftFile, scale);
     ftDetect.run();
 
 

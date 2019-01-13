@@ -23,9 +23,11 @@ class FeatureDetector
         bool mHasTxtFile;
         std::filesystem::path mTxtFile;
         std::filesystem::path mFtFile;
+
+        float mScale;
     public:
         FeatureDetector(const std::string& inFolder, const std::string& outFolder,
-            const std::string& txtFile, const std::string& ftFile);
+            const std::string& txtFile, const std::string& ftFile, float scale);
         void run();
     private:
         cv::Ptr<cv::Feature2D> getFtPtr();

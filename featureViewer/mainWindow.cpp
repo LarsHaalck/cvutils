@@ -16,10 +16,12 @@
 #include <QSpacerItem>
 #include <QFileDialog>
 #include <QString>
+#include <QInputDialog>
 
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/imgproc.hpp>
 //#include <opencv2/xfeatures2d.hpp>
 
 #include "io.h"
@@ -109,6 +111,13 @@ void MainWindow::open()
     if (ftDir.isEmpty())
       return;
 
+    bool ok;
+    mScale = static_cast<float>(
+        QInputDialog::getDouble(this, tr("Scale factor"), tr("Scale factor"), 1.0, 0.0,
+            1.0, 2, &ok));
+    if (!ok)
+        mScale = 1.0;
+
     populateScene(imgDir, txtFile, ftDir);
 
 }
@@ -123,6 +132,13 @@ void MainWindow::populateScene(const QString& imgDir, const QString& txtFile,
     for (size_t i = 0; i < imgFiles.size(); i++)
     {
         cv::Mat currImg = cv::imread(imgFiles[i], cv::IMREAD_UNCHANGED);
+        if (mScale != 1)
+        {
+            cv::Mat resImg;
+            cv::resize(currImg, resImg, cv::Size(0, 0), mScale, mScale);
+            currImg = resImg;
+        }
+
         cv::Mat res;
         cv::drawKeypoints(currImg, ftFiles[i], res);
         mImgs.push_back(res);

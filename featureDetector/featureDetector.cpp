@@ -6,6 +6,7 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "io.h"
 
@@ -14,12 +15,13 @@ namespace cvutils
 {
 FeatureDetector::FeatureDetector(const std::string& inFolder,
     const std::string& outFolder, const std::string& txtFile,
-    const std::string& ftFile)
+    const std::string& ftFile, float scale)
     : mInFolder(inFolder)
     , mOutFolder(outFolder)
     , mHasTxtFile(!txtFile.empty())
     , mTxtFile(txtFile)
     , mFtFile(ftFile)
+    , mScale(scale)
 {
 
     if (!std::filesystem::exists(mInFolder)
@@ -56,10 +58,16 @@ void FeatureDetector::run()
     {
         std::cout << "Processing file: " << file << std::endl;
         cv::Mat img = cv::imread(file, cv::IMREAD_GRAYSCALE);
+
+        if (mScale != 1.0f)
+        {
+            cv::Mat resImg;
+            cv::resize(img, resImg, cv::Size(0, 0), mScale, mScale);
+            img = resImg;
+        }
+
         std::vector<cv::KeyPoint> features;
         ftPtr->detect(img, features);
-
-        std::cout << features.size() << std::endl;
 
         cv::Mat descriptors;
         ftPtr->compute(img, features, descriptors);
