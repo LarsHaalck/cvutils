@@ -28,7 +28,6 @@ class FeatureDetector
             const std::string& txtFile, const std::string& ftFile);
         void run();
     private:
-        std::vector<std::string> getImageFiles();
         cv::Ptr<cv::Feature2D> getFtPtr();
         cv::Ptr<cv::Feature2D> getORBPtr(const cv::FileStorage& fs);
 };

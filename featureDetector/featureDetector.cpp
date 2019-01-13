@@ -7,6 +7,8 @@
 #include <opencv2/xfeatures2d.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include "io.h"
+
 
 namespace cvutils
 {
@@ -49,7 +51,7 @@ void FeatureDetector::run()
     auto ftPtr = getFtPtr();
 
 
-    auto files = getImageFiles();
+    auto files = misc::getImgFiles(mInFolder, mTxtFile);
     for (const auto& file : files)
     {
         std::cout << "Processing file: " << file << std::endl;
@@ -77,28 +79,6 @@ void FeatureDetector::run()
             cv::FileStorage::WRITE);
         cv::write(fsDesc, "desc", descriptors);
     }
-}
-
-std::vector<std::string> FeatureDetector::getImageFiles()
-{
-    std::vector<std::string> files;
-    if (!mHasTxtFile)
-        cv::glob(mInFolder.string(), files, false);
-    else
-    {
-        std::ifstream stream(mTxtFile.string());
-        std::string currLine;
-        while(std::getline(stream, currLine))
-        {
-            if (!currLine.empty())
-            {
-                std::filesystem::path imgPath(currLine);
-                files.push_back((mInFolder / imgPath).string());
-            }
-        }
-    }
-
-    return files;
 }
 
 cv::Ptr<cv::Feature2D> FeatureDetector::getFtPtr()
