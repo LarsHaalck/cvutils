@@ -187,13 +187,19 @@ void MainWindow::nextClicked()
 
 void MainWindow::sliderMoved(int value)
 {
-    mCurrImg = value - 1;
-    updateScene();
+    if (mImgs.size())
+    {
+        mCurrImg = value - 1;
+        updateScene();
+    }
 }
 
 void MainWindow::spinChanged(int value)
 {
-    mCurrImg = value - 1;
-    updateScene();
+    if (mImgs.size())
+    {
+        mCurrImg = value - 1;
+        updateScene();
+    }
 }
 }

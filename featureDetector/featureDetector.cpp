@@ -51,8 +51,6 @@ FeatureDetector::FeatureDetector(const std::string& inFolder,
 void FeatureDetector::run()
 {
     auto ftPtr = getFtPtr();
-
-
     auto files = misc::getImgFiles(mInFolder, mTxtFile);
     for (const auto& file : files)
     {
@@ -77,14 +75,21 @@ void FeatureDetector::run()
         cv::FileStorage fsFt(imgStem.string() + "-feat.yml",
             cv::FileStorage::WRITE);
         std::cout << "writing to " << imgStem.string() + "-feat.yml" << std::endl;
+
         if (!fsFt.isOpened())
         {
-            std::cout << "Could not open" << std::endl;
+            std::cout << "Could not open feature file for writing" << std::endl;
+            return;
         }
         cv::write(fsFt, "pts", features);
 
         cv::FileStorage fsDesc(imgStem.string() + "-desc.yml",
             cv::FileStorage::WRITE);
+        if (!fsDesc.isOpened())
+        {
+            std::cout << "Could not open descriptor file for writing" << std::endl;
+            return;
+        }
         cv::write(fsDesc, "desc", descriptors);
     }
 }
