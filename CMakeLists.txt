@@ -34,3 +34,4 @@ target_link_libraries(qZoom
 add_subdirectory(featureDetector)
 add_subdirectory(featureViewer)
 add_subdirectory(featureMatcher)
+add_subdirectory(matchesViewer)

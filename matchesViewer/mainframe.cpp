@@ -15,7 +15,6 @@
 #else
 #include <QtWidgets>
 #endif
-#include <QSvgWidget>
 
 QGraphicsView *MainFrame::view() const
 {

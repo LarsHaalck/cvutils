@@ -8,12 +8,21 @@
 
 #pragma once
 
-#include "openMVG/sfm/sfm.hpp"
+#include <vector>
+#include <string>
+#include <opencv2/core.hpp>
+#include <opencv2/features2d.hpp>
 
-// Basic storage of OpenMVG data related to a scene
+
+// Basic storage of data related to a scene
 struct Document
 {
-  openMVG::sfm::SfM_Data sfm_data;
-  std::shared_ptr<openMVG::sfm::Features_Provider> feats_provider;
-  std::shared_ptr<openMVG::sfm::Matches_Provider> matches_provider;
+    std::vector<std::string> imgFiles;
+    std::vector<std::vector<cv::KeyPoint>> keyPoints;
+    cv::Mat pairMat;
+    std::vector<std::vector<cv::DMatch>> matches;
+    float scale;
+
+    int getMatchRow(size_t i, size_t j);
+    void eraseMatchRow(size_t k);
 };
