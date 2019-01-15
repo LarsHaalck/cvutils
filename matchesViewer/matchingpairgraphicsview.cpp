@@ -15,7 +15,19 @@
 #include <QWheelEvent>
 #endif
 
-    MatchingPairGraphicsView::MatchingPairGraphicsView
+#include <QGraphicsView>
+#include <QGraphicsScene>
+
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/highgui.hpp>
+
+#include "qImgCv.h"
+#include "qGraphicsZoom.h"
+
+MatchingPairGraphicsView::MatchingPairGraphicsView
 (
  MainFrame *v,
  Document & doc
@@ -76,39 +88,25 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
             if (!doc.matches[k].empty())
             {
 
-                //using namespace openMVG::sfm;
-                //using namespace openMVG::features;
+                cv::Mat imgI = cv::imread(doc.imgFiles[I], cv::IMREAD_UNCHANGED);
+                cv::Mat imgJ = cv::imread(doc.imgFiles[J], cv::IMREAD_UNCHANGED);
 
-                //const openMVG::sfm::View * view_I = doc.sfm_data.GetViews().at(I).get();
-                //const std::string sView_I = stlplus::create_filespec(doc.sfm_data.s_root_path,
-                //        view_I->s_Img_path);
-                //const openMVG::sfm::View * view_J = doc.sfm_data.GetViews().at(J).get();
-                //const std::string sView_J = stlplus::create_filespec(doc.sfm_data.s_root_path,
-                //        view_J->s_Img_path);
+                cv::Mat matchesImg;
+                cv::drawMatches(imgI, doc.keyPoints[I], imgJ, doc.keyPoints[J],
+                    doc.matches[k], matchesImg);
 
-                //// Show pairwise correspondences
-                //const bool bVertical = false;
-                //const std::string svg_string =
-                //    Matches2SVGString
-                //    (
-                //     sView_I,
-                //     {view_I->ui_width, view_I->ui_height},
-                //     doc.feats_provider->getFeatures(view_I->id_view),
-                //     sView_J,
-                //     {view_J->ui_width, view_J->ui_height},
-                //     doc.feats_provider->getFeatures(view_J->id_view),
-                //     pairwise_matches,
-                //     bVertical
-                //    );
-                //QSvgWidget *svg = new QSvgWidget;
-                //svg->load(QByteArray(svg_string.c_str()));
+                std::stringstream title;
+                title << doc.imgFiles[I] << " " << doc.imgFiles[J]
+                    << " #Matches: " << doc.matches[k].size();
 
-                std::ostringstream ofs;
-                ofs << view_I->s_Img_path << " " << view_J->s_Img_path
-                    << " #Matches: " << pairwise_matches.size();
-                //svg->setWindowTitle( QString::fromStdString(ofs.str()));
+                QGraphicsScene* scene = new QGraphicsScene(this);
+                QGraphicsView* view = new QGraphicsView(scene);
+                new cvutils::misc::Graphics_view_zoom(view);
 
-                //svg->show();
+                scene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(matchesImg)));
+                view->fitInView(scene->itemsBoundingRect(), Qt::KeepAspectRatio);
+                view->setWindowTitle( QString::fromStdString(title.str()));
+                view->show();
             }
         }
     }
