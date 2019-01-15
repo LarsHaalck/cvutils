@@ -105,7 +105,10 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getFtPtr()
     {
         ftPtr = getORBPtr(fs);
     }
-    // TODO: support other fts
+    else if (name == "sift")
+    {
+        ftPtr = getSIFTPtr(fs);
+    }
 
     return ftPtr;
 }
@@ -129,6 +132,16 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getORBPtr(const cv::FileStorage& fs)
         score = cv::ORB::FAST_SCORE;
 
     return cv::ORB::create(nf, sf, nl, et, fl, wta, score, ps, ft);
+}
 
+cv::Ptr<cv::Feature2D> FeatureDetector::getSIFTPtr(const cv::FileStorage& fs)
+{
+    int nf = static_cast<int>(fs["nfeatures"]);
+    int no = static_cast<int>(fs["nOctaveLayers"]);
+    double ct = static_cast<double>(fs["contrastThreshold"]);
+    double et = static_cast<double>(fs["edgeThreshold"]);
+    double s = static_cast<double>(fs["sigma"]);
+
+    return cv::xfeatures2d::SIFT::create(nf, no, ct, et, s);
 }
 }
