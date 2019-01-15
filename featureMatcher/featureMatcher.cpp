@@ -7,6 +7,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/calib3d.hpp>
 
 namespace cvutils
 {
@@ -48,8 +49,14 @@ namespace cvutils
 void FeatureMatcher::run()
 {
     auto imgList = misc::getImgFiles(mImgFolder, mTxtFile);
+    auto putPair = getPutativeMatches(imgList);
+    getGeomMatches(imgList, putPair);
+}
+
+std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
+FeatureMatcher::getPutativeMatches(const std::vector<std::string>& imgList)
+{
     auto pairList = getPairList(imgList.size());
-    auto feats = misc::getFtVecs(imgList, mFtFolder);
     auto descs = misc::getDescMats(imgList, mFtFolder);
     auto descMatcher = getMatcher();
 
@@ -76,6 +83,60 @@ void FeatureMatcher::run()
 
     pairMat = cv::Mat(pairMat, cv::Range(0, currMatId));
     write(pairMat, matches, detail::MatchType::Putative);
+    return {pairMat, matches};
+}
+
+std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
+FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList,
+    std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> putPair)
+
+{
+    auto fts = misc::getFtVecs(imgList, mFtFolder);
+    const auto& pairMat = putPair.first;
+    auto& matches = putPair.second;
+
+    // for every matching image pair
+    for (int k = 0; k < pairMat.rows; k++)
+    {
+        int srcId = pairMat.at<int>(k, 0);
+        int dstId = pairMat.at<int>(k, 1);
+
+        //build point matrices
+        std::vector<cv::Point2f> src, dst;
+        for (size_t i = 0; i < matches[k].size(); i++)
+        {
+            src.push_back(fts[srcId][matches[k][i].queryIdx].pt);
+            dst.push_back(fts[dstId][matches[k][i].trainIdx].pt);
+        }
+        auto mask = getInlierMask(src, dst);
+        std::vector<cv::DMatch> filteredMatches;
+        for (size_t r = 0; r < mask.size(); r++)
+        {
+            if (mask[r])
+            {
+               filteredMatches.push_back(matches[k][r]);
+            }
+        }
+
+        matches[k] = filteredMatches;
+    }
+    write(pairMat, matches, detail::MatchType::Geometric);
+    return putPair;
+}
+
+std::vector<uchar> FeatureMatcher::getInlierMask(const std::vector<cv::Point2f>& src,
+    const std::vector<cv::Point2f>& dst)
+{
+    return getInlierMaskHomo(src, dst);
+}
+
+std::vector<uchar> FeatureMatcher::getInlierMaskHomo(const std::vector<cv::Point2f>& src,
+    const std::vector<cv::Point2f>& dst)
+{
+    std::vector<uchar> mask;
+    if (src.size() >= 4)
+        cv::findHomography(src, dst, cv::RANSAC, 3.0, mask);
+    return mask;
 }
 
 //void FeatureMatcher::test(const std::vector<std::string>& imgList)

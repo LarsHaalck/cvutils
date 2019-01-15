@@ -13,6 +13,7 @@ target_link_libraries(ftMatch
     opencv_highgui
     opencv_imgproc
     opencv_imgcodecs
+    opencv_calib3d
     stdc++fs
     io
 )

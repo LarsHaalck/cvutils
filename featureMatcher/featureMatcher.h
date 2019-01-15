@@ -44,6 +44,19 @@ private:
         const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
 
 
+    std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
+        getPutativeMatches(const std::vector<std::string>& imgList);
+
+    std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
+        getGeomMatches(const std::vector<std::string>& imgList,
+        std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> putPair);
+
+    std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
+        const std::vector<cv::Point2f>& dst);
+    std::vector<uchar> getInlierMaskHomo(const std::vector<cv::Point2f>& src,
+        const std::vector<cv::Point2f>& dst);
+
+
 };
 }
 
