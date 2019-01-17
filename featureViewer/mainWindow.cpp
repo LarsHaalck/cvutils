@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     QMenu* fileMenu = new QMenu(tr("&File"));
     bar->addMenu(fileMenu);
 
-    QAction* openAct = new QAction(tr("&Open..."));
+    QAction* openAct = new QAction(tr("&Open..."), nullptr);
     openAct->setShortcuts(QKeySequence::Open);
     connect(openAct, &QAction::triggered, this, &MainWindow::open);
     fileMenu->addAction(openAct);
@@ -54,8 +54,8 @@ MainWindow::MainWindow(QWidget *parent)
     mSlider->setMinimum(1);
     connect(mSlider, SIGNAL(sliderMoved(int)), this, SLOT(sliderMoved(int)));
     mSpinBox = new QSpinBox(this);
-    connect(mSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
-        [=](int i){ spinChanged(i); });
+    connect(mSpinBox, SIGNAL(valueChanged(int)), this,
+        SLOT(spinChanged(int)));
 
     QLabel* slashLabel = new QLabel("/", this);
     mNumFrames = new QLabel("0", this);

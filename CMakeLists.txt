@@ -1,7 +1,6 @@
 project(openCV-Util)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 
-set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 
@@ -26,6 +25,7 @@ target_link_libraries(qImgCv
 )
 
 add_library(qZoom STATIC misc/qGraphicsZoom.cpp)
+set_target_properties(qZoom PROPERTIES AUTOMOC ON)
 target_include_directories(qZoom PUBLIC misc)
 target_link_libraries(qZoom
     Qt5::Widgets
