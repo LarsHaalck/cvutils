@@ -6,7 +6,7 @@ set(ftDetectSources
 add_executable(ftDetect ${ftDetectSources})
 target_include_directories(ftDetect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ftDetect
-    cxxopts::cxxopts
+    cxxopts
     opencv_core
     opencv_features2d
     opencv_xfeatures2d
@@ -16,3 +16,5 @@ target_link_libraries(ftDetect
     stdc++fs
     io
 )
+
+install(TARGETS ftDetect DESTINATION bin)

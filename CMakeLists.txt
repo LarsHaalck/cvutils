@@ -5,10 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 
 find_package(OpenCV REQUIRED)
-find_package(cxxopts REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
-
+# general libraries needed by multiple submodules
 add_library(io STATIC misc/io.cpp)
 target_include_directories(io PUBLIC misc)
 target_link_libraries(io
@@ -19,6 +18,7 @@ target_link_libraries(io
 add_library(qImgCv STATIC misc/qImgCv.cpp)
 target_include_directories(qImgCv PUBLIC misc)
 target_link_libraries(qImgCv
+    PUBLIC
     opencv_core
     opencv_imgproc
     Qt5::Widgets
@@ -28,10 +28,14 @@ add_library(qZoom STATIC misc/qGraphicsZoom.cpp)
 set_target_properties(qZoom PROPERTIES AUTOMOC ON)
 target_include_directories(qZoom PUBLIC misc)
 target_link_libraries(qZoom
+    PUBLIC
     Qt5::Widgets
 )
+
+add_library(cxxopts INTERFACE)
+target_include_directories(cxxopts INTERFACE cxxopts)
 
 add_subdirectory(featureDetector)
 add_subdirectory(featureViewer)
 add_subdirectory(featureMatcher)
-add_subdirectory(matchesViewer)
+add_subdirectory(featureMatchesViewer)

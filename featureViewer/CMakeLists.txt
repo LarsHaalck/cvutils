@@ -23,3 +23,6 @@ target_link_libraries(ftView
     qImgCv
     qZoom
 )
+
+install(TARGETS ftView DESTINATION bin)
+
