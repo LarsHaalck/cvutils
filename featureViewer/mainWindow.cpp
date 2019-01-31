@@ -128,38 +128,41 @@ void MainWindow::populateScene(const QString& imgDir, const QString& txtFile,
     auto imgFiles = misc::getImgFiles(imgDir.toStdString(), txtFile.toStdString());
     auto ftFiles = misc::getFtVecs(imgFiles, ftDir.toStdString());
 
-    mImgs.reserve(imgFiles.size());
-    for (size_t i = 0; i < imgFiles.size(); i++)
-    {
-        cv::Mat currImg = cv::imread(imgFiles[i], cv::IMREAD_UNCHANGED);
-        if (mScale != 1)
-        {
-            cv::Mat resImg;
-            cv::resize(currImg, resImg, cv::Size(0, 0), mScale, mScale);
-            currImg = resImg;
-        }
-
-        cv::Mat res;
-        cv::drawKeypoints(currImg, ftFiles[i], res);
-        mImgs.push_back(res);
-    }
-
-    mNumFrames->setText(QString::number(mImgs.size()));
+    mImgFiles = imgFiles;
+    mFtFiles = ftFiles;
+    mNumFrames->setText(QString::number(imgFiles.size()));
     mSpinBox->setRange(1, imgFiles.size());
     mSpinBox->setValue(1);
     mSlider->setMaximum(imgFiles.size());
     mSlider->setValue(1);
 
-    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(mImgs[0])));
+    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(0))));
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
     mCurrImg = 0;
 
 }
 
+cv::Mat MainWindow::getImg(size_t idx)
+{
+    cv::Mat currImg = cv::imread(mImgFiles[idx], cv::IMREAD_UNCHANGED);
+    if (mScale != 1)
+    {
+        cv::Mat resImg;
+        cv::resize(currImg, resImg, cv::Size(0, 0), mScale, mScale);
+        currImg = resImg;
+    }
+
+    cv::Mat res;
+    cv::drawKeypoints(currImg, mFtFiles[idx], res);
+    return res;
+}
+
+
+
 void MainWindow::updateScene()
 {
     mImgScene->clear();
-    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(mImgs[mCurrImg])));
+    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(mCurrImg))));
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
     mSpinBox->setValue(mCurrImg + 1);
     mSlider->setValue(mCurrImg + 1);
@@ -178,7 +181,7 @@ void MainWindow::prevClicked()
 
 void MainWindow::nextClicked()
 {
-    if (mCurrImg + 1 < mImgs.size())
+    if (mCurrImg + 1 < mImgFiles.size())
     {
         mCurrImg++;
         updateScene();
@@ -187,7 +190,7 @@ void MainWindow::nextClicked()
 
 void MainWindow::sliderMoved(int value)
 {
-    if (mImgs.size())
+    if (mImgFiles.size())
     {
         mCurrImg = value - 1;
         updateScene();
@@ -196,7 +199,7 @@ void MainWindow::sliderMoved(int value)
 
 void MainWindow::spinChanged(int value)
 {
-    if (mImgs.size())
+    if (mImgFiles.size())
     {
         mCurrImg = value - 1;
         updateScene();

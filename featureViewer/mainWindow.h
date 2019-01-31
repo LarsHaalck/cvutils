@@ -38,12 +38,14 @@ private:
     QLabel* mNumFrames;
     QPushButton* mPrev;
     QPushButton* mNext;
-    std::vector<cv::Mat> mImgs;
+    std::vector<std::string> mImgFiles;
+    std::vector<std::vector<cv::KeyPoint>> mFtFiles;
     float mScale;
     size_t mCurrImg;
 
     void populateScene(const QString& imgDir, const QString& txtFile,
         const QString& ftDir);
+    cv::Mat getImg(size_t idx);
 
     void updateScene();
 
