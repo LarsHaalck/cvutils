@@ -9,6 +9,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "io.h"
+#include "tqdm.h"
 
 
 namespace cvutils
@@ -52,9 +53,14 @@ void FeatureDetector::run()
 {
     auto ftPtr = getFtPtr();
     auto files = misc::getImgFiles(mInFolder, mTxtFile);
-    for (const auto& file : files)
+
+    tqdm bar;
+    size_t current = 0;
+    #pragma omp parallel for
+    for (size_t i = 0; i < files.size(); i++)
     {
-        std::cout << "Processing file: " << file << std::endl;
+        std::string file = files[i];
+        //std::cout << "Processing file: " << file << std::endl;
         cv::Mat img = cv::imread(file, cv::IMREAD_GRAYSCALE);
 
         if (mScale != 1.0f)
@@ -72,25 +78,24 @@ void FeatureDetector::run()
 
         std::filesystem::path imgStem(file);
         imgStem = mOutFolder / imgStem.stem();
-        cv::FileStorage fsFt(imgStem.string() + "-feat.yml",
+        cv::FileStorage fsFt(imgStem.string() + "-feat.yml.gz",
             cv::FileStorage::WRITE);
-        std::cout << "writing to " << imgStem.string() + "-feat.yml" << std::endl;
+        //std::cout << "writing to " << imgStem.string() + "-feat.yml" << std::endl;
 
         if (!fsFt.isOpened())
-        {
             std::cout << "Could not open feature file for writing" << std::endl;
-            return;
-        }
-        cv::write(fsFt, "pts", features);
+        else
+            cv::write(fsFt, "pts", features);
 
-        cv::FileStorage fsDesc(imgStem.string() + "-desc.yml",
+        cv::FileStorage fsDesc(imgStem.string() + "-desc.yml.gz",
             cv::FileStorage::WRITE);
         if (!fsDesc.isOpened())
-        {
             std::cout << "Could not open descriptor file for writing" << std::endl;
-            return;
-        }
-        cv::write(fsDesc, "desc", descriptors);
+        else
+            cv::write(fsDesc, "desc", descriptors);
+
+        #pragma omp critical
+        bar.progress(current++, files.size());
     }
 }
 
@@ -102,28 +107,26 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getFtPtr()
     std::string name = fs["name"];
     cv::Ptr<cv::Feature2D> ftPtr;
     if (name == "orb")
-    {
         ftPtr = getORBPtr(fs);
-    }
     else if (name == "sift")
-    {
         ftPtr = getSIFTPtr(fs);
-    }
+    else if (name == "surf")
+        ftPtr = getSURFPtr(fs);
 
     return ftPtr;
 }
 
 cv::Ptr<cv::Feature2D> FeatureDetector::getORBPtr(const cv::FileStorage& fs)
 {
-    int nf = static_cast<int>(fs["nfeatures"]);
-    float sf = static_cast<float>(fs["scaleFactor"]);
-    int nl = static_cast<int>(fs["nlevels"]);
-    int et = static_cast<int>(fs["edgeThreshold"]);
-    int fl = static_cast<int>(fs["firstLevel"]);
-    int wta = static_cast<int>(fs["WTA_K"]);
-    std::string st = static_cast<std::string>(fs["scoreType"]);
-    int ps = static_cast<int>(fs["patchSize"]);
-    int ft = static_cast<int>(fs["fastThreshold"]);
+    auto nf = static_cast<int>(fs["nfeatures"]);
+    auto sf = static_cast<float>(fs["scaleFactor"]);
+    auto nl = static_cast<int>(fs["nlevels"]);
+    auto et = static_cast<int>(fs["edgeThreshold"]);
+    auto fl = static_cast<int>(fs["firstLevel"]);
+    auto wta = static_cast<int>(fs["WTA_K"]);
+    auto st = static_cast<std::string>(fs["scoreType"]);
+    auto ps = static_cast<int>(fs["patchSize"]);
+    auto ft = static_cast<int>(fs["fastThreshold"]);
 
     cv::ORB::ScoreType score;
     if (st == "harris")
@@ -136,12 +139,34 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getORBPtr(const cv::FileStorage& fs)
 
 cv::Ptr<cv::Feature2D> FeatureDetector::getSIFTPtr(const cv::FileStorage& fs)
 {
-    int nf = static_cast<int>(fs["nfeatures"]);
-    int no = static_cast<int>(fs["nOctaveLayers"]);
-    double ct = static_cast<double>(fs["contrastThreshold"]);
-    double et = static_cast<double>(fs["edgeThreshold"]);
-    double s = static_cast<double>(fs["sigma"]);
+    auto nf = static_cast<int>(fs["nfeatures"]);
+    auto no = static_cast<int>(fs["nOctaveLayers"]);
+    auto ct = static_cast<double>(fs["contrastThreshold"]);
+    auto et = static_cast<double>(fs["edgeThreshold"]);
+    auto s = static_cast<double>(fs["sigma"]);
 
     return cv::xfeatures2d::SIFT::create(nf, no, ct, et, s);
+}
+cv::Ptr<cv::Feature2D> FeatureDetector::getSURFPtr(const cv::FileStorage& fs)
+{
+    auto hess = static_cast<double>(fs["hessianThreshold"]);
+    auto nOct = static_cast<int>(fs["nOctaves"]);
+    auto nOctL = static_cast<int>(fs["nOctaveLayers"]);
+
+    // this mess is needed, because OpenCV does not implement
+    // conversion to bool (only to int, double, string and float)
+    auto ext = static_cast<int>(fs["extended"]);
+    auto up = static_cast<int>(fs["up"]);
+
+    bool extB = false;
+    bool upB = false;
+    if (ext)
+        extB = true;
+    if (up)
+        upB = true;
+
+    return cv::xfeatures2d::SURF::create(hess, nOct, nOctL, extB, upB);
+
+    
 }
 }

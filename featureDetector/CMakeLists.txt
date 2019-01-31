@@ -7,6 +7,7 @@ add_executable(ftDetect ${ftDetectSources})
 target_include_directories(ftDetect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ftDetect
     cxxopts
+    progress
     opencv_core
     opencv_features2d
     opencv_xfeatures2d
@@ -17,4 +18,7 @@ target_link_libraries(ftDetect
     io
 )
 
+if(OpenMP_FOUND)
+    target_link_libraries(ftDetect OpenMP::OpenMP_CXX)
+endif()
 install(TARGETS ftDetect DESTINATION bin)

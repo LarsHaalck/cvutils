@@ -6,17 +6,35 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 
 find_package(OpenCV REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+find_package(OpenMP QUIET)
+
+if(NOT OpenMP_FOUND)
+    message(WARNING "OpenMP not found, compiling without...")
+else()
+    message(STATUS "Building with OpenMP...")
+endif()
 
 # general libraries needed by multiple submodules
-add_library(io STATIC misc/io.cpp)
-target_include_directories(io PUBLIC misc)
+add_library(cxxopts INTERFACE)
+target_include_directories(cxxopts INTERFACE misc/cxxopts)
+
+add_library(progress INTERFACE)
+target_include_directories(progress INTERFACE misc/tqdm)
+
+add_library(io STATIC misc/io/io.cpp)
+target_include_directories(io PUBLIC misc/io)
 target_link_libraries(io
     opencv_core
     stdc++fs
+    progress
 )
 
-add_library(qImgCv STATIC misc/qImgCv.cpp)
-target_include_directories(qImgCv PUBLIC misc)
+if(OpenMP_FOUND)
+    target_link_libraries(io OpenMP::OpenMP_CXX)
+endif()
+
+add_library(qImgCv STATIC misc/qimgcv/qImgCv.cpp)
+target_include_directories(qImgCv PUBLIC misc/qimgcv)
 target_link_libraries(qImgCv
     PUBLIC
     opencv_core
@@ -24,16 +42,14 @@ target_link_libraries(qImgCv
     Qt5::Widgets
 )
 
-add_library(qZoom STATIC misc/qGraphicsZoom.cpp)
+add_library(qZoom STATIC misc/zoom/qGraphicsZoom.cpp)
 set_target_properties(qZoom PROPERTIES AUTOMOC ON)
-target_include_directories(qZoom PUBLIC misc)
+target_include_directories(qZoom PUBLIC misc/zoom)
 target_link_libraries(qZoom
     PUBLIC
     Qt5::Widgets
 )
 
-add_library(cxxopts INTERFACE)
-target_include_directories(cxxopts INTERFACE cxxopts)
 
 add_subdirectory(featureDetector)
 add_subdirectory(featureViewer)

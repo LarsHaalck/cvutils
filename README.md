@@ -57,6 +57,12 @@ manual deletion of wrong matches by hand.
 * Qt (>= 5.0)
 * CMake (>= 3.8)
 
+# Implicit dependencies
+The following small header only libraries are used and directly included. 
+No installing is necessary
+* cxxopts (https://github.com/jarro2783/cxxopts)
+* cpptqdm (https://github.com/aminnj/cpptqdm)
+
 # Quick Start
 ```
 mkdir build 

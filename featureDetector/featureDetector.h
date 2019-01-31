@@ -33,6 +33,7 @@ class FeatureDetector
         cv::Ptr<cv::Feature2D> getFtPtr();
         cv::Ptr<cv::Feature2D> getORBPtr(const cv::FileStorage& fs);
         cv::Ptr<cv::Feature2D> getSIFTPtr(const cv::FileStorage& fs);
+        cv::Ptr<cv::Feature2D> getSURFPtr(const cv::FileStorage& fs);
 };
 }
 

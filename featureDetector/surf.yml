@@ -1,0 +1,7 @@
+%YAML:1.0
+name: "surf"
+hessianThreshold: 100
+nOctaves: 4
+nOctaveLayers: 3
+extended: 0
+upright: 0
