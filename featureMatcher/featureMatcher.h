@@ -22,9 +22,9 @@ class FeatureMatcher
 {
 private:
     bool mHasTxtFile;
-    std::filesystem::path  mImgFolder;
-    std::filesystem::path  mTxtFile;
-    std::filesystem::path  mFtFolder;
+    std::filesystem::path mImgFolder;
+    std::filesystem::path mTxtFile;
+    std::filesystem::path mFtFolder;
     int mMatcher;
     int mWindow;
 public:
@@ -40,11 +40,11 @@ private:
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
 
-    std::pair<size_t, std::vector<bool>> getPairMatMask(
-        const std::vector<std::vector<cv::DMatch>>& matches);
+    //std::pair<size_t, std::vector<bool>> getPairMatMask(
+    //    const std::vector<std::vector<cv::DMatch>>& matches);
 
-    void write(const cv::Mat& pairMat,
-        const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
+    //void write(const cv::Mat& pairMat,
+    //    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
 
 
     std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>

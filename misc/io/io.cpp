@@ -90,18 +90,43 @@ std::vector<cv::Mat> getDescMats(
 }
 
 
+std::string typeToFiledEnding(detail::MatchType type)
+{
+    std::string ending;
+    switch (type)
+    {
+        case detail::MatchType::Putative:
+            ending = "-putative.yml.gz";
+            break;
+        case detail::MatchType::PutativeFiltered:
+            ending = "-putative-filtered.yml.gz";
+            break;
+        case detail::MatchType::Geometric:
+            ending = "-geometric.yml.gz";
+            break;
+        case detail::MatchType::GeometricFiltered:
+            ending = "-geometric-filtered.yml.gz";
+            break;
+    }
+    return ending;
+}
+
 std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> getMatches(
     const std::filesystem::path& ftDir,
     detail::MatchType type)
 {
     std::cout << "Loading matches file" << std::endl;
-    std::string ending = (type == detail::MatchType::Putative)
-        ? "-putative.yml.gz"
-        : "-geometric.yml.gz";
+    auto ending = typeToFiledEnding(type);
 
     std::filesystem::path base("matches");
     base = ftDir / base;
     cv::FileStorage matchFile(base.string() + ending, cv::FileStorage::READ);
+    if (!matchFile.isOpened())
+    {
+        std::cout << "Could not read file " << base.string() + ending << std::endl;
+        std::cout << "Does ist exist?" << std::endl;
+        return {};
+    }
     cv::Mat pairMat;
     cv::read(matchFile["pairMat"], pairMat);
 
@@ -113,7 +138,63 @@ std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> getMatches(
         matches.push_back(currMatches);
     }
 
+    std::cout << "Read file " << base.string()  + ending << std::endl;
+    std::cout << "with #" << pairMat.rows << " correspondences" << std::endl;
+
     return {pairMat, matches};
+
+}
+
+std::pair<size_t, std::vector<bool>> getPairMatMask(
+    const std::vector<std::vector<cv::DMatch>>& matches)
+{
+    auto ids = std::vector<bool>(matches.size(), false);
+    size_t count = 0;
+    for (size_t i = 0; i < matches.size(); i++)
+    {
+        if (!matches[i].empty())
+        {
+            ids[i] = true;
+            count++;
+        }
+    }
+    return {count, ids};
+}
+
+void writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
+    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type)
+{
+    auto ending = typeToFiledEnding(type);
+    std::filesystem::path base("matches");
+    base = ftDir / base;
+    cv::FileStorage matchFile(base.string() + ending,
+        cv::FileStorage::WRITE);
+
+    if (!matchFile.isOpened())
+    {
+        std::cout << "Could not open matches file for writing" << std::endl;
+        return;
+    }
+    
+    auto sizeIdPair = getPairMatMask(matches);
+    auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type());
+    for(int r = 0, k = 0; r < pairMat.rows; r++)
+    {
+        if (sizeIdPair.second[r])
+        {
+            truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0);
+            truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1);
+        }
+    }
+
+    std::cout << "Writing to " << base.string() + ending << std::endl;
+    cv::write(matchFile, "pairMat", truncPairMat);
+    size_t i = 0;
+    for (const auto& match : matches)
+    {
+        if (!match.empty())
+            cv::write(matchFile, std::string("matches_") + std::to_string(i++), match);
+    }
 
 }
 

@@ -8,10 +8,13 @@
 
 #pragma once
 
+#include <filesystem>
 #include <vector>
 #include <string>
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
+
+#include "io.h"
 
 
 // Basic storage of data related to a scene
@@ -22,6 +25,8 @@ struct Document
     cv::Mat pairMat;
     std::vector<std::vector<cv::DMatch>> matches;
     float scale;
+    std::filesystem::path ftDir;
+    cvutils::detail::MatchType type;
 
     int getMatchRow(size_t i, size_t j);
     void eraseMatchRow(size_t k);

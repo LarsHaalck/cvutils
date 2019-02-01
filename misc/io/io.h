@@ -14,7 +14,9 @@ namespace detail
     enum class MatchType
     {
         Putative,
-        Geometric
+        PutativeFiltered,
+        Geometric,
+        GeometricFiltered
     };
 }
 namespace misc
@@ -29,6 +31,15 @@ std::vector<cv::Mat> getDescMats(
 
 std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> getMatches(
     const std::filesystem::path& ftDir, detail::MatchType type);
+
+std::pair<size_t, std::vector<bool>> getPairMatMask(
+    const std::vector<std::vector<cv::DMatch>>& matches);
+
+void writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
+    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
+
+std::string typeToFiledEnding(detail::MatchType type);
+
 }
 }
 

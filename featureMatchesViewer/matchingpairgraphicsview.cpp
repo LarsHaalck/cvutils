@@ -79,7 +79,6 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
         if (pair_item)
         {
             // Launch here a viewer of the pair matches
-
             const unsigned int I = pair_item->get_x();
             const unsigned int J = pair_item->get_y();
 

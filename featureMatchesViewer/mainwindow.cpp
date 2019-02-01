@@ -78,12 +78,18 @@ void MainWindow::open()
         scale = 1.0;
 
     QStringList items;
-    items << "Putative" << "Geometric";
+    items << "Putative" << "Geometric" << "Putative filtered" << "Geometric filtered";
     QString item = QInputDialog::getItem(this, tr("Select match type"), tr("type"),
         items, 0, false, &ok);
-    detail::MatchType type = (item == "Putative")
-        ? detail::MatchType::Putative
-        : detail::MatchType::Geometric;
+    detail::MatchType type;
+    if (item == items[0])
+        type = detail::MatchType::Putative;
+    else if (item == items[1])
+        type = detail::MatchType::Geometric;
+    else if (item == items[2])
+        type = detail::MatchType::PutativeFiltered;
+    else if (item == items[3])
+        type = detail::MatchType::GeometricFiltered;
 
     populateScene(imgDir.toStdString(), txtFile.toStdString(), ftDir.toStdString(),
         scale, type);
@@ -93,19 +99,17 @@ void MainWindow::open()
 
 void MainWindow::save()
 {
-    //const QString matches_fileName = QFileDialog::getSaveFileName(
-    //        this, tr("Choose a matches.X file"), QString(), tr("matches file (*.bin *.txt)"));
-    //if (matches_fileName.isEmpty())
-    //    return;
-
-    //if (!Save(doc.matches_provider->pairWise_matches_, matches_fileName.toStdString()))
-    //{
-    //    std::cerr
-    //        << "Cannot save computed matches in: "
-    //        << matches_fileName.toStdString();
-    //    return;
-    //}
-
+    if (doc.type == detail::MatchType::Putative
+            || doc.type == detail::MatchType::PutativeFiltered)
+    {
+        misc::writeMatches(doc.ftDir, doc.pairMat, doc.matches,
+            detail::MatchType::PutativeFiltered);
+    }
+    else
+    {
+        misc::writeMatches(doc.ftDir, doc.pairMat, doc.matches,
+            detail::MatchType::GeometricFiltered);
+    }
 }
 
 
@@ -119,15 +123,14 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
     auto matchPair = misc::getMatches(ftDir, type);
     doc.pairMat = matchPair.first;
     doc.matches = matchPair.second;
-
-    std::cout << doc.pairMat.rows << ", " << doc.pairMat.cols << std::endl;
+    doc.scale = scale;
+    doc.ftDir = ftDir;
+    doc.type = type;
 
     for (int k = 0; k < doc.pairMat.rows; k++)
     {
         size_t i = doc.pairMat.at<int>(k, 0);
         size_t j = doc.pairMat.at<int>(k, 1);
-
-        std::cout << i << ',' << j << std::endl;
 
         const QColor color(0, 0, 255, 127);
         QGraphicsItem* item = new PairGraphicsItem(color, i , j, doc.matches[k].size());

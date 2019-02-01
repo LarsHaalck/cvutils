@@ -86,7 +86,7 @@ FeatureMatcher::getPutativeMatches(const std::vector<std::string>& imgList)
         bar.progress(count++, pairList.size());
     }
 
-    write(pairMat, matches, detail::MatchType::Putative);
+    misc::writeMatches(mFtFolder, pairMat, matches, detail::MatchType::Putative);
     return {pairMat, matches};
 }
 
@@ -129,7 +129,7 @@ FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList,
         #pragma omp critical
         bar.progress(count++, pairMat.rows);
     }
-    write(pairMat, matches, detail::MatchType::Geometric);
+    misc::writeMatches(mFtFolder, pairMat, matches, detail::MatchType::Geometric);
     return putPair;
 }
 
@@ -218,60 +218,60 @@ cv::Ptr<cv::DescriptorMatcher> FeatureMatcher::getMatcher()
 
     }
 }
-std::pair<size_t, std::vector<bool>> FeatureMatcher::getPairMatMask(
-    const std::vector<std::vector<cv::DMatch>>& matches)
-{
+/* std::pair<size_t, std::vector<bool>> FeatureMatcher::getPairMatMask( */
+/*     const std::vector<std::vector<cv::DMatch>>& matches) */
+/* { */
 
-    auto ids = std::vector<bool>(matches.size(), false);
-    size_t count = 0;
-    for (size_t i = 0; i < matches.size(); i++)
-    {
-        if (!matches[i].empty())
-        {
-            ids[i] = true;
-            count++;
-        }
-    }
-    return {count, ids};
-}
+/*     auto ids = std::vector<bool>(matches.size(), false); */
+/*     size_t count = 0; */
+/*     for (size_t i = 0; i < matches.size(); i++) */
+/*     { */
+/*         if (!matches[i].empty()) */
+/*         { */
+/*             ids[i] = true; */
+/*             count++; */
+/*         } */
+/*     } */
+/*     return {count, ids}; */
+/* } */
 
-void FeatureMatcher::write(const cv::Mat& pairMat,
-    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type)
-{
-    std::string ending = (type == detail::MatchType::Putative)
-        ? "-putative.yml.gz"
-        : "-geometric.yml.gz";
+/* void FeatureMatcher::write(const cv::Mat& pairMat, */
+/*     const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type) */
+/* { */
+/*     std::string ending = (type == detail::MatchType::Putative) */
+/*         ? "-putative.yml.gz" */
+/*         : "-geometric.yml.gz"; */
 
-    std::filesystem::path base("matches");
-    base = mFtFolder / base;
-    cv::FileStorage matchFile(base.string() + ending,
-        cv::FileStorage::WRITE);
+/*     std::filesystem::path base("matches"); */
+/*     base = mFtFolder / base; */
+/*     cv::FileStorage matchFile(base.string() + ending, */
+/*         cv::FileStorage::WRITE); */
 
-    if (!matchFile.isOpened())
-    {
-        std::cout << "Could not open matches file for writing" << std::endl;
-        return;
-    }
+/*     if (!matchFile.isOpened()) */
+/*     { */
+/*         std::cout << "Could not open matches file for writing" << std::endl; */
+/*         return; */
+/*     } */
     
-    auto sizeIdPair = getPairMatMask(matches);
-    auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type());
-    for(int r = 0, k = 0; r < pairMat.rows; r++)
-    {
-        if (sizeIdPair.second[r])
-        {
-            truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0);
-            truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1);
-        }
-    }
+/*     auto sizeIdPair = getPairMatMask(matches); */
+/*     auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type()); */
+/*     for(int r = 0, k = 0; r < pairMat.rows; r++) */
+/*     { */
+/*         if (sizeIdPair.second[r]) */
+/*         { */
+/*             truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0); */
+/*             truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1); */
+/*         } */
+/*     } */
 
-    cv::write(matchFile, "pairMat", truncPairMat);
-    size_t i = 0;
-    for (const auto& match : matches)
-    {
-        if (!match.empty())
-            cv::write(matchFile, std::string("matches_") + std::to_string(i++), match);
-    }
+/*     cv::write(matchFile, "pairMat", truncPairMat); */
+/*     size_t i = 0; */
+/*     for (const auto& match : matches) */
+/*     { */
+/*         if (!match.empty()) */
+/*             cv::write(matchFile, std::string("matches_") + std::to_string(i++), match); */
+/*     } */
 
-}
+/* } */
 
 }
