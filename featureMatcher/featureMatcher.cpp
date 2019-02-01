@@ -9,6 +9,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 
+#include "tqdm.h"
+
 namespace cvutils
 {
     FeatureMatcher::FeatureMatcher(
@@ -62,26 +64,28 @@ FeatureMatcher::getPutativeMatches(const std::vector<std::string>& imgList)
 
     // NOTE: opencv doesnt support CV_32U
     cv::Mat pairMat = cv::Mat::zeros(pairList.size(), 2, CV_32S);
-    size_t currMatId = 0;
+    std::vector<std::vector<cv::DMatch>> matches(pairList.size());
 
-    std::vector<std::vector<cv::DMatch>> matches;
-    for (auto pair : pairList)
+    std::cout << "\nPutative matching..." << std::endl;
+    tqdm bar;
+    size_t count = 0;
+    #pragma omp parallel for
+    for (size_t k = 0; k < pairList.size(); k++)
     {
+        auto pair = pairList[k];
         size_t i = pair.first;
         size_t j = pair.second;
-        std::cout << "Matching: " << i << ", " << j << std::endl;
         std::vector<cv::DMatch> currMatches;
         descMatcher->match(descs[i], descs[j], currMatches);
 
-        if (currMatches.size() >= 4)
-        {
-            pairMat.at<int>(currMatId, 0) = i;
-            pairMat.at<int>(currMatId++, 1) = j;
-            matches.push_back(currMatches);
-        }
+        pairMat.at<int>(k, 0) = i;
+        pairMat.at<int>(k, 1) = j;
+        matches[k] = std::move(currMatches);
+
+        #pragma omp critical
+        bar.progress(count++, pairList.size());
     }
 
-    pairMat = cv::Mat(pairMat, cv::Range(0, currMatId));
     write(pairMat, matches, detail::MatchType::Putative);
     return {pairMat, matches};
 }
@@ -95,7 +99,11 @@ FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList,
     const auto& pairMat = putPair.first;
     auto& matches = putPair.second;
 
+    std::cout << "\nGeometric verification..." << std::endl;
+    tqdm bar;
+    size_t count = 0;
     // for every matching image pair
+    #pragma omp parallel for
     for (int k = 0; k < pairMat.rows; k++)
     {
         int srcId = pairMat.at<int>(k, 0);
@@ -113,12 +121,13 @@ FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList,
         for (size_t r = 0; r < mask.size(); r++)
         {
             if (mask[r])
-            {
                filteredMatches.push_back(matches[k][r]);
-            }
         }
 
         matches[k] = filteredMatches;
+
+        #pragma omp critical
+        bar.progress(count++, pairMat.rows);
     }
     write(pairMat, matches, detail::MatchType::Geometric);
     return putPair;
@@ -136,6 +145,8 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomo(const std::vector<cv::Point
     std::vector<uchar> mask;
     if (src.size() >= 4)
         cv::findHomography(src, dst, cv::RANSAC, 3.0, mask);
+    else
+        mask = std::vector<uchar>(src.size(), 1);
     return mask;
 }
 
@@ -207,13 +218,29 @@ cv::Ptr<cv::DescriptorMatcher> FeatureMatcher::getMatcher()
 
     }
 }
+std::pair<size_t, std::vector<bool>> FeatureMatcher::getPairMatMask(
+    const std::vector<std::vector<cv::DMatch>>& matches)
+{
+
+    auto ids = std::vector<bool>(matches.size(), false);
+    size_t count = 0;
+    for (size_t i = 0; i < matches.size(); i++)
+    {
+        if (!matches[i].empty())
+        {
+            ids[i] = true;
+            count++;
+        }
+    }
+    return {count, ids};
+}
 
 void FeatureMatcher::write(const cv::Mat& pairMat,
     const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type)
 {
     std::string ending = (type == detail::MatchType::Putative)
-        ? "-putative.yml"
-        : "-geometric.yml";
+        ? "-putative.yml.gz"
+        : "-geometric.yml.gz";
 
     std::filesystem::path base("matches");
     base = mFtFolder / base;
@@ -225,10 +252,24 @@ void FeatureMatcher::write(const cv::Mat& pairMat,
         std::cout << "Could not open matches file for writing" << std::endl;
         return;
     }
-    cv::write(matchFile, "pairMat", pairMat);
-    for (size_t i = 0; i < matches.size(); i++)
+    
+    auto sizeIdPair = getPairMatMask(matches);
+    auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type());
+    for(int r = 0, k = 0; r < pairMat.rows; r++)
     {
-        cv::write(matchFile, std::string("matches_") + std::to_string(i), matches[i]);
+        if (sizeIdPair.second[r])
+        {
+            truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0);
+            truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1);
+        }
+    }
+
+    cv::write(matchFile, "pairMat", truncPairMat);
+    size_t i = 0;
+    for (const auto& match : matches)
+    {
+        if (!match.empty())
+            cv::write(matchFile, std::string("matches_") + std::to_string(i++), match);
     }
 
 }

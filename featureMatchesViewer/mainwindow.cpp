@@ -17,6 +17,8 @@
 
 #include "io.h"
 
+#include <iostream>
+
 namespace cvutils
 {
 MainWindow::MainWindow(QWidget *parent)
@@ -118,10 +120,14 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
     doc.pairMat = matchPair.first;
     doc.matches = matchPair.second;
 
+    std::cout << doc.pairMat.rows << ", " << doc.pairMat.cols << std::endl;
+
     for (int k = 0; k < doc.pairMat.rows; k++)
     {
         size_t i = doc.pairMat.at<int>(k, 0);
         size_t j = doc.pairMat.at<int>(k, 1);
+
+        std::cout << i << ',' << j << std::endl;
 
         const QColor color(0, 0, 255, 127);
         QGraphicsItem* item = new PairGraphicsItem(color, i , j, doc.matches[k].size());

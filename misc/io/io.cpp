@@ -39,7 +39,7 @@ std::vector<std::vector<cv::KeyPoint>> getFtVecs(
 {
     std::vector<std::vector<cv::KeyPoint>> keyPoints(imgFiles.size());
 
-    std::cout << "Loading feature files" << std::endl;
+    std::cout << "\nLoading feature files" << std::endl;
     tqdm bar;
     size_t count = 0;
     #pragma omp parallel for
@@ -67,7 +67,7 @@ std::vector<cv::Mat> getDescMats(
 {
     std::vector<cv::Mat> desc(imgFiles.size());
 
-    std::cout << "Loading descriptor files" << std::endl;
+    std::cout << "\nLoading descriptor files" << std::endl;
     tqdm bar;
     size_t count = 0;
     #pragma omp parallel for

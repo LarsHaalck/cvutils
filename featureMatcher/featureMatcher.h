@@ -40,6 +40,9 @@ private:
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
 
+    std::pair<size_t, std::vector<bool>> getPairMatMask(
+        const std::vector<std::vector<cv::DMatch>>& matches);
+
     void write(const cv::Mat& pairMat,
         const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
 

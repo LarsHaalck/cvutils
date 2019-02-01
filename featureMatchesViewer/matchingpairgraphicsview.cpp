@@ -90,6 +90,14 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
 
                 cv::Mat imgI = cv::imread(doc.imgFiles[I], cv::IMREAD_UNCHANGED);
                 cv::Mat imgJ = cv::imread(doc.imgFiles[J], cv::IMREAD_UNCHANGED);
+                if (doc.scale != 1)
+                {
+                    cv::Mat resImgI, resImgJ;
+                    cv::resize(imgI, resImgI, cv::Size(0, 0), doc.scale, doc.scale);
+                    cv::resize(imgJ, resImgJ, cv::Size(0, 0), doc.scale, doc.scale);
+                    imgI = resImgI;
+                    imgJ = resImgJ;
+                }
 
                 cv::Mat matchesImg;
                 cv::drawMatches(imgI, doc.keyPoints[I], imgJ, doc.keyPoints[J],
