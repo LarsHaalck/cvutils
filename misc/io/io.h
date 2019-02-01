@@ -21,24 +21,66 @@ namespace detail
 }
 namespace misc
 {
-std::vector<std::string> getImgFiles(const std::filesystem::path& imgDir,
-    const std::filesystem::path& txtFile);
+enum class IOType
+{
+    Read,
+    Write
+};
 
-std::vector<std::vector<cv::KeyPoint>> getFtVecs(
-    const std::vector<std::string>& imgFiles, const std::filesystem::path& ftDir);
-std::vector<cv::Mat> getDescMats(
-    const std::vector<std::string>& imgFiles, const std::filesystem::path& ftDir);
+class IO
+{
+////////////////////////////////////////
+//         NON-STATIC STUFF           //
+////////////////////////////////////////
+public:
+    IO(const std::filesystem::path& ftDir, detail::MatchType matchType, IOType readType);
+    void writeMatch(size_t i, size_t j, const std::vector<cv::DMatch>& match);
+    std::vector<cv::DMatch> readMatch(size_t i, size_t j);
 
-std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> getMatches(
-    const std::filesystem::path& ftDir, detail::MatchType type);
+    void writePairMat(const cv::Mat& pairMat, const std::vector<size_t>& matchSizes);
+    cv::Mat readPairMat();
+private:
+    std::filesystem::path mFtDir;
+    detail::MatchType mType;
+    cv::FileStorage mFile;
 
-std::pair<size_t, std::vector<bool>> getPairMatMask(
-    const std::vector<std::vector<cv::DMatch>>& matches);
+////////////////////////////////////////
+//          STATIC STUFF              //
+////////////////////////////////////////
+public:
+    static std::vector<std::string> getImgFiles(const std::filesystem::path& imgDir,
+        const std::filesystem::path& txtFile);
+    // Feature vecs
+    static std::vector<std::vector<cv::KeyPoint>> getFtVecs(
+        const std::vector<std::string>& imgFiles, const std::filesystem::path& ftDir);
+    static std::vector<cv::KeyPoint> getFtVec(const std::string& imgFile,
+        const std::filesystem::path& ftDir);
 
-void writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
-    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
+    // desc mats
+    static std::vector<cv::Mat> getDescMats(const std::vector<std::string>& imgFiles,
+            const std::filesystem::path& ftDir);
+    static cv::Mat getDescMat(const std::string& imgFile, const std::filesystem::path& ftDir);
 
-std::string typeToFiledEnding(detail::MatchType type);
+    // matches
+    static std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> getMatches(
+        const std::filesystem::path& ftDir, detail::MatchType type);
+
+    static void writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
+        const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
+
+
+    static std::string getMatchesFilename(const std::filesystem::path& ftDir,
+        detail::MatchType type);
+    static std::string typeToFileEnding(detail::MatchType type);
+
+private:
+    static std::pair<size_t, std::vector<bool>> getPairMatMask(
+        const std::vector<std::vector<cv::DMatch>>& matches);
+    static std::pair<size_t, std::vector<bool>> getPairMatMask(
+        const std::vector<size_t>& matchSizes);
+
+
+};
 
 }
 }

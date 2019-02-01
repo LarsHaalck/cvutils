@@ -50,21 +50,21 @@ namespace cvutils
 
 void FeatureMatcher::run()
 {
-    auto imgList = misc::getImgFiles(mImgFolder, mTxtFile);
-    auto putPair = getPutativeMatches(imgList);
-    getGeomMatches(imgList, putPair);
+    auto imgList = misc::IO::getImgFiles(mImgFolder, mTxtFile);
+    getPutativeMatches(imgList);
+    getGeomMatches(imgList);
 }
 
-std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
-FeatureMatcher::getPutativeMatches(const std::vector<std::string>& imgList)
+void FeatureMatcher::getPutativeMatches(const std::vector<std::string>& imgList)
 {
     auto pairList = getPairList(imgList.size());
-    auto descs = misc::getDescMats(imgList, mFtFolder);
     auto descMatcher = getMatcher();
 
     // NOTE: opencv doesnt support CV_32U
     cv::Mat pairMat = cv::Mat::zeros(pairList.size(), 2, CV_32S);
-    std::vector<std::vector<cv::DMatch>> matches(pairList.size());
+    std::vector<size_t> matchSizes(pairList.size());
+
+    auto outFile = misc::IO(mFtFolder, detail::MatchType::Putative, misc::IOType::Write);
 
     std::cout << "\nPutative matching..." << std::endl;
     tqdm bar;
@@ -75,29 +75,34 @@ FeatureMatcher::getPutativeMatches(const std::vector<std::string>& imgList)
         auto pair = pairList[k];
         size_t i = pair.first;
         size_t j = pair.second;
+        auto descI = misc::IO::getDescMat(imgList[i], mFtFolder);
+        auto descJ = misc::IO::getDescMat(imgList[j], mFtFolder);
+
         std::vector<cv::DMatch> currMatches;
-        descMatcher->match(descs[i], descs[j], currMatches);
+        descMatcher->match(descI, descJ, currMatches);
 
         pairMat.at<int>(k, 0) = i;
         pairMat.at<int>(k, 1) = j;
-        matches[k] = std::move(currMatches);
+        matchSizes[k] = currMatches.size();
 
         #pragma omp critical
-        bar.progress(count++, pairList.size());
+        {
+            outFile.writeMatch(i, j, currMatches);
+            bar.progress(count++, pairList.size());
+        }
     }
-
-    misc::writeMatches(mFtFolder, pairMat, matches, detail::MatchType::Putative);
-    return {pairMat, matches};
+    outFile.writePairMat(pairMat, matchSizes);
 }
 
-std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
-FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList,
-    std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> putPair)
-
+void FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList)
 {
-    auto fts = misc::getFtVecs(imgList, mFtFolder);
-    const auto& pairMat = putPair.first;
-    auto& matches = putPair.second;
+    /* auto fts = misc::getFtVecs(imgList, mFtFolder); */
+    /* const auto& pairMat = putPair.first; */
+    /* auto& matches = putPair.second; */
+
+    auto inFile = misc::IO(mFtFolder, detail::MatchType::Putative, misc::IOType::Read);
+    auto outFile = misc::IO(mFtFolder, detail::MatchType::Geometric, misc::IOType::Write);
+    auto pairMat = inFile.readPairMat();
 
     std::cout << "\nGeometric verification..." << std::endl;
     tqdm bar;
@@ -108,6 +113,7 @@ FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList,
     {
         int srcId = pairMat.at<int>(k, 0);
         int dstId = pairMat.at<int>(k, 1);
+        auto matches = inFile.readMatch(srcId, dstId);
 
         //build point matrices
         std::vector<cv::Point2f> src, dst;
@@ -252,7 +258,7 @@ cv::Ptr<cv::DescriptorMatcher> FeatureMatcher::getMatcher()
 /*         std::cout << "Could not open matches file for writing" << std::endl; */
 /*         return; */
 /*     } */
-    
+
 /*     auto sizeIdPair = getPairMatMask(matches); */
 /*     auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type()); */
 /*     for(int r = 0, k = 0; r < pairMat.rows; r++) */

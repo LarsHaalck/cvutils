@@ -10,7 +10,72 @@ namespace cvutils
 namespace misc
 {
 
-std::vector<std::string> getImgFiles(const std::filesystem::path& imgDir,
+////////////////////////////////////////
+//         NON-STATIC STUFF           //
+////////////////////////////////////////
+IO::IO(const std::filesystem::path& ftDir, detail::MatchType matchType, IOType readType)
+    : mFtDir(ftDir)
+    , mType(matchType)
+{
+    auto fileName = getMatchesFilename(ftDir, matchType);
+    cv::FileStorage::Mode mode = (readType == IOType::Read)
+        ? cv::FileStorage::READ
+        : cv::FileStorage::WRITE;
+    mFile = cv::FileStorage(fileName, mode);
+
+    if (!mFile.isOpened())
+    {
+        throw std::filesystem::filesystem_error("Error opening matches file",
+            fileName, std::make_error_code(std::errc::io_error));
+    }
+}
+void IO::writeMatch(size_t i, size_t j, const std::vector<cv::DMatch>& match)
+{
+    // when reading, the default is empty, so we don't need to store this
+    if (!match.empty())
+    {
+        cv::write(mFile, std::string("matches_") + std::to_string(i) + "_"
+            + std::to_string(j), match);
+    }
+}
+
+std::vector<cv::DMatch> IO::readMatch(size_t i, size_t j)
+{
+    std::vector<cv::DMatch> currMatches;
+    auto accessString = "matches_" + std::to_string(i) + "_" + std::to_string(j);
+    cv::read(mFile[accessString], currMatches);
+    return currMatches;
+}
+
+void IO::writePairMat(const cv::Mat& pairMat, const std::vector<size_t>& matchSizes)
+{
+    auto sizeIdPair = getPairMatMask(matchSizes);
+    auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type());
+    for(int r = 0, k = 0; r < pairMat.rows; r++)
+    {
+        if (sizeIdPair.second[r])
+        {
+            truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0);
+            truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1);
+        }
+    }
+
+    std::cout << "Writing pair mat" << std::endl;
+    cv::write(mFile, "pairMat", truncPairMat);
+
+}
+
+cv::Mat IO::readPairMat()
+{
+    cv::Mat pairMat;
+    cv::read(mFile["pairMat"], pairMat);
+    return pairMat;
+}
+
+////////////////////////////////////////
+//          STATIC STUFF              //
+////////////////////////////////////////
+std::vector<std::string> IO::getImgFiles(const std::filesystem::path& imgDir,
         const std::filesystem::path& txtFile)
 {
     std::vector<std::string> files;
@@ -34,7 +99,7 @@ std::vector<std::string> getImgFiles(const std::filesystem::path& imgDir,
     return files;
 }
 
-std::vector<std::vector<cv::KeyPoint>> getFtVecs(
+std::vector<std::vector<cv::KeyPoint>> IO::getFtVecs(
     const std::vector<std::string>& imgFiles, const std::filesystem::path& ftDir)
 {
     std::vector<std::vector<cv::KeyPoint>> keyPoints(imgFiles.size());
@@ -45,14 +110,7 @@ std::vector<std::vector<cv::KeyPoint>> getFtVecs(
     #pragma omp parallel for
     for (size_t i = 0; i < imgFiles.size(); i++)
     {
-        std::string file = imgFiles[i];
-        std::filesystem::path imgStem(file);
-        imgStem = ftDir / imgStem.stem();
-
-        cv::FileStorage fsFt(imgStem.string() + "-feat.yml.gz", cv::FileStorage::READ);
-        std::vector<cv::KeyPoint> currKeyPts;
-        cv::read(fsFt["pts"], currKeyPts);
-        keyPoints[i] = currKeyPts;
+        keyPoints[i] = getFtVec(imgFiles[i], ftDir);
 
         #pragma omp critical
         bar.progress(count++, imgFiles.size());
@@ -61,8 +119,20 @@ std::vector<std::vector<cv::KeyPoint>> getFtVecs(
     return keyPoints;
 }
 
+std::vector<cv::KeyPoint> IO::getFtVec(const std::string& imgFile,
+    const std::filesystem::path& ftDir)
+{
+    std::filesystem::path imgStem(imgFile);
+    imgStem = ftDir / imgStem.stem();
 
-std::vector<cv::Mat> getDescMats(
+    cv::FileStorage fsFt(imgStem.string() + "-feat.yml.gz", cv::FileStorage::READ);
+    std::vector<cv::KeyPoint> currKeyPts;
+    cv::read(fsFt["pts"], currKeyPts);
+
+    return currKeyPts;
+}
+
+std::vector<cv::Mat> IO::getDescMats(
     const std::vector<std::string>& imgFiles, const std::filesystem::path& ftDir)
 {
     std::vector<cv::Mat> desc(imgFiles.size());
@@ -73,14 +143,7 @@ std::vector<cv::Mat> getDescMats(
     #pragma omp parallel for
     for (size_t i = 0; i < imgFiles.size(); i++)
     {
-        std::string file = imgFiles[i];
-        std::filesystem::path imgStem(file);
-        imgStem = ftDir / imgStem.stem();
-
-        cv::FileStorage fsFt(imgStem.string() + "-desc.yml.gz", cv::FileStorage::READ);
-        cv::Mat currDesc;
-        cv::read(fsFt["desc"], currDesc);
-        desc[i] = currDesc;
+        desc[i] = getDescMat(imgFiles[i], ftDir);
 
         #pragma omp critical
         bar.progress(count++, imgFiles.size());
@@ -89,8 +152,27 @@ std::vector<cv::Mat> getDescMats(
     return desc;
 }
 
+cv::Mat IO::getDescMat(const std::string& imgFile, const std::filesystem::path& ftDir)
+{
+    std::filesystem::path imgStem(imgFile);
+    imgStem = ftDir / imgStem.stem();
 
-std::string typeToFiledEnding(detail::MatchType type)
+    cv::FileStorage fsFt(imgStem.string() + "-desc.yml.gz", cv::FileStorage::READ);
+    cv::Mat currDesc;
+    cv::read(fsFt["desc"], currDesc);
+    return currDesc;
+}
+
+
+std::string IO::getMatchesFilename(const std::filesystem::path& ftDir,
+    detail::MatchType type)
+{
+    std::filesystem::path base("matches");
+    base = ftDir / base;
+    return base.string() + typeToFileEnding(type);
+}
+
+std::string IO::typeToFileEnding(detail::MatchType type)
 {
     std::string ending;
     switch (type)
@@ -111,41 +193,43 @@ std::string typeToFiledEnding(detail::MatchType type)
     return ending;
 }
 
-std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> getMatches(
+std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> IO::getMatches(
     const std::filesystem::path& ftDir,
     detail::MatchType type)
 {
     std::cout << "Loading matches file" << std::endl;
-    auto ending = typeToFiledEnding(type);
+    auto fileName = getMatchesFilename(ftDir, type);
 
-    std::filesystem::path base("matches");
-    base = ftDir / base;
-    cv::FileStorage matchFile(base.string() + ending, cv::FileStorage::READ);
+    cv::FileStorage matchFile(fileName, cv::FileStorage::READ);
     if (!matchFile.isOpened())
     {
-        std::cout << "Could not read file " << base.string() + ending << std::endl;
-        std::cout << "Does ist exist?" << std::endl;
+        std::cout << "Could not read file " << fileName << std::endl;
+        std::cout << "Does it exist?" << std::endl;
         return {};
     }
     cv::Mat pairMat;
     cv::read(matchFile["pairMat"], pairMat);
 
     std::vector<std::vector<cv::DMatch>> matches;
-    for (int i = 0; i < pairMat.rows; i++)
+    for (int r = 0; r < pairMat.rows; r++)
     {
+        size_t i = pairMat.at<int>(r, 0);
+        size_t j = pairMat.at<int>(r, 1);
+
+        auto accesString = "matches_" + std::to_string(i) + std::to_string(j);
         std::vector<cv::DMatch> currMatches;
-        cv::read(matchFile[std::string("matches_") + std::to_string(i)], currMatches);
+        cv::read(matchFile[accesString], currMatches);
         matches.push_back(currMatches);
     }
 
-    std::cout << "Read file " << base.string()  + ending << std::endl;
+    std::cout << "Read file " << fileName << std::endl;
     std::cout << "with #" << pairMat.rows << " correspondences" << std::endl;
 
     return {pairMat, matches};
 
 }
 
-std::pair<size_t, std::vector<bool>> getPairMatMask(
+std::pair<size_t, std::vector<bool>> IO::getPairMatMask(
     const std::vector<std::vector<cv::DMatch>>& matches)
 {
     auto ids = std::vector<bool>(matches.size(), false);
@@ -161,21 +245,36 @@ std::pair<size_t, std::vector<bool>> getPairMatMask(
     return {count, ids};
 }
 
-void writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
+std::pair<size_t, std::vector<bool>> IO::getPairMatMask(
+    const std::vector<size_t>& matchSizes)
+{
+    auto ids = std::vector<bool>(matchSizes.size(), false);
+    size_t count = 0;
+    for (size_t i = 0; i < matchSizes.size(); i++)
+    {
+        if (!matchSizes[i])
+        {
+            ids[i] = true;
+            count++;
+        }
+    }
+    return {count, ids};
+}
+
+void IO::writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
     const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type)
 {
-    auto ending = typeToFiledEnding(type);
-    std::filesystem::path base("matches");
-    base = ftDir / base;
-    cv::FileStorage matchFile(base.string() + ending,
-        cv::FileStorage::WRITE);
+    auto fileName = getMatchesFilename(ftDir, type);
+    cv::FileStorage matchFile(fileName, cv::FileStorage::WRITE);
 
     if (!matchFile.isOpened())
     {
         std::cout << "Could not open matches file for writing" << std::endl;
         return;
     }
-    
+
+    std::cout << "Writing to " << fileName << std::endl;
+
     auto sizeIdPair = getPairMatMask(matches);
     auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type());
     for(int r = 0, k = 0; r < pairMat.rows; r++)
@@ -184,18 +283,14 @@ void writeMatches(const std::filesystem::path& ftDir, const cv::Mat& pairMat,
         {
             truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0);
             truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1);
+
+            size_t i = pairMat.at<int>(r, 0);
+            size_t j = pairMat.at<int>(r, 1);
+            auto accesString = "matches_" + std::to_string(i) + std::to_string(j);
+            cv::write(matchFile, accesString, matches[r]);
         }
     }
-
-    std::cout << "Writing to " << base.string() + ending << std::endl;
     cv::write(matchFile, "pairMat", truncPairMat);
-    size_t i = 0;
-    for (const auto& match : matches)
-    {
-        if (!match.empty())
-            cv::write(matchFile, std::string("matches_") + std::to_string(i++), match);
-    }
-
 }
 
 }

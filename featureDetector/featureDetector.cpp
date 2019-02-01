@@ -52,7 +52,7 @@ FeatureDetector::FeatureDetector(const std::string& inFolder,
 void FeatureDetector::run()
 {
     auto ftPtr = getFtPtr();
-    auto files = misc::getImgFiles(mInFolder, mTxtFile);
+    auto files = misc::IO::getImgFiles(mInFolder, mTxtFile);
 
     tqdm bar;
     size_t current = 0;

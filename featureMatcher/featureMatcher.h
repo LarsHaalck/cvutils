@@ -47,12 +47,8 @@ private:
     //    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
 
 
-    std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
-        getPutativeMatches(const std::vector<std::string>& imgList);
-
-    std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>>
-        getGeomMatches(const std::vector<std::string>& imgList,
-        std::pair<cv::Mat, std::vector<std::vector<cv::DMatch>>> putPair);
+    void getPutativeMatches(const std::vector<std::string>& imgList);
+    void getGeomMatches(const std::vector<std::string>& imgList);
 
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
