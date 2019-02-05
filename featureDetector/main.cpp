@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "cxxopts.hpp"
+#include "cxxopts/cxxopts.hpp"
 #include "featureDetector.h"
 
 
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
             << std::endl;
     }
 
-    cvutils::FeatureDetector ftDetect(inFolder, outFolder, txtFile, ftFile, scale);
+    cvutils::FeatureDetector ftDetect(inFolder, txtFile, outFolder, ftFile, scale);
     ftDetect.run();
 
 

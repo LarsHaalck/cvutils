@@ -6,6 +6,9 @@
 
 #include <opencv2/core.hpp>
 
+#include "io/imageReader.h"
+#include "io/featureWriter.h"
+
 // forward declarations
 namespace cv
 {
@@ -17,14 +20,10 @@ namespace cvutils
 class FeatureDetector
 {
     private:
-        std::filesystem::path mInFolder;
-        std::filesystem::path mOutFolder;
-
-        bool mHasTxtFile;
-        std::filesystem::path mTxtFile;
+        cvutils::io::ImageReader mReader;
+        cvutils::io::FeatureWriter mWriter;
         std::filesystem::path mFtFile;
 
-        float mScale;
     public:
         FeatureDetector(const std::string& inFolder, const std::string& outFolder,
             const std::string& txtFile, const std::string& ftFile, float scale);

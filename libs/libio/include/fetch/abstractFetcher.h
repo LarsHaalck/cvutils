@@ -10,6 +10,7 @@ class AbstractFetcher
 {
 public:
     virtual ~AbstractFetcher() {}
+    virtual size_t size() const = 0;
     virtual Value get(const Key& key) const = 0;
 };
 } // namespace fetch

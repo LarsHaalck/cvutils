@@ -2,7 +2,7 @@
 #define CVUTILS_CACHE_LRU_CACHE_H
 
 #include "abstractCache.h"
-#include "fetch/abstractFetcher.h"
+#include "../fetch/abstractFetcher.h"
 
 #include <list>
 #include <memory>
@@ -20,9 +20,9 @@ private:
     size_t mCapacity;
     std::list<listNode> mList;
     std::unordered_map<Key, typename std::list<listNode>::iterator> mMap;
-    std::unique_ptr<fetch::AbstractFetcher<Key, Value>> mReader;
+    std::shared_ptr<fetch::AbstractFetcher<Key, Value>> mReader;
 public:
-    LRUCache(size_t capacity, std::unique_ptr<fetch::AbstractFetcher<Key, Value>> reader)
+    LRUCache(size_t capacity, std::shared_ptr<fetch::AbstractFetcher<Key, Value>> reader)
         : mCapacity(capacity)
         , mList()
         , mMap(capacity)

@@ -4,7 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "fetch/abstractFetcher.h"
+#include "../fetch/abstractFetcher.h"
 
 namespace cvutils
 {
@@ -15,19 +15,21 @@ class SimpleCache : public AbstractCache<Key, Value>
 {
 private:
     std::unordered_map<Key, Value> mMap;
-    std::unique_ptr<fetch::AbstractFetcher<Key, Value>> mReader;
+    std::shared_ptr<fetch::AbstractFetcher<Key, Value>> mFetcher;
 public:
-    SimpleCache(std::unique_ptr<fetch::AbstractFetcher<Key, Value>> reader)
-        : mReader(std::move(reader))
+    SimpleCache(std::shared_ptr<fetch::AbstractFetcher<Key, Value>> fetcher)
+        : mMap()
+        , mFetcher(std::move(fetcher))
     {
+        mMap.reserve(fetcher->size());
     }
 
-    void setCapacityHint(size_t capacity) { mMap.reserve(capacity); }
     // always cache no matter what
     Value get(const Key& key)
     {
         if (!mMap.count(key))
-            mMap[key] = mReader->get(key);
+            mMap[key] = mFetcher->get(key);
+
         return mMap[key];
     }
 };

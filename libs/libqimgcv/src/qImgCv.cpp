@@ -23,7 +23,7 @@
 **
 ****************************************************************************/
 
-#include "qImgCv.h"
+#include "qimgcv/qImgCv.h"
 #include <QImage>
 #include <QSysInfo>
 #include <QDebug>

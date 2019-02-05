@@ -24,9 +24,10 @@
 #include <opencv2/imgproc.hpp>
 //#include <opencv2/xfeatures2d.hpp>
 
-#include "io.h"
-#include "qImgCv.h"
-#include "qGraphicsZoom.h"
+#include "io/imageReader.h"
+#include "io/featureReader.h"
+#include "qimgcv/qImgCv.h"
+#include "zoom/qGraphicsZoom.h"
 
 
 namespace cvutils
@@ -34,7 +35,6 @@ namespace cvutils
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
 {
-
     QMenuBar* bar = new QMenuBar(this);
     QMenu* fileMenu = new QMenu(tr("&File"));
     bar->addMenu(fileMenu);
@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     mImgScene = new QGraphicsScene(this);
     mImgView = new QGraphicsView(mImgScene);
-    mZoom = new misc::Graphics_view_zoom(mImgView);
+    mZoom = new Graphics_view_zoom(mImgView);
 
     QGroupBox* box = new QGroupBox(tr("Playback Control"), this);
     mSlider = new QSlider(Qt::Horizontal, this);
@@ -112,28 +112,29 @@ void MainWindow::open()
       return;
 
     bool ok;
-    mScale = static_cast<float>(
+    auto scale = static_cast<float>(
         QInputDialog::getDouble(this, tr("Scale factor"), tr("Scale factor"), 1.0, 0.0,
             1.0, 2, &ok));
     if (!ok)
-        mScale = 1.0;
+        scale = 1.0;
 
-    populateScene(imgDir, txtFile, ftDir);
+    populateScene(imgDir.toStdString(), txtFile.toStdString(), ftDir.toStdString(),
+        scale);
 
 }
 
-void MainWindow::populateScene(const QString& imgDir, const QString& txtFile,
-    const QString& ftDir)
+void MainWindow::populateScene(const std::string& imgDir, const std::string& txtFile,
+    const std::string& ftDir, float scale)
 {
-    auto imgFiles = misc::getImgFiles(imgDir.toStdString(), txtFile.toStdString());
-    auto ftFiles = misc::getFtVecs(imgFiles, ftDir.toStdString());
-
-    mImgFiles = imgFiles;
-    mFtFiles = ftFiles;
-    mNumFrames->setText(QString::number(imgFiles.size()));
-    mSpinBox->setRange(1, imgFiles.size());
+    mImgReader = std::make_unique<cvutils::io::ImageReader>(imgDir, txtFile, scale);
+    mFtReader = std::make_unique<cvutils::io::FeatureReader>(imgDir, txtFile, ftDir);
+    
+    //mFtFiles = ftFiles;
+    mNumImages = mImgReader->numImages();
+    mNumFrames->setText(QString::number(mNumImages));
+    mSpinBox->setRange(1, mNumImages);
     mSpinBox->setValue(1);
-    mSlider->setMaximum(imgFiles.size());
+    mSlider->setMaximum(mNumImages);
     mSlider->setValue(1);
 
     mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(0))));
@@ -144,16 +145,11 @@ void MainWindow::populateScene(const QString& imgDir, const QString& txtFile,
 
 cv::Mat MainWindow::getImg(size_t idx)
 {
-    cv::Mat currImg = cv::imread(mImgFiles[idx], cv::IMREAD_UNCHANGED);
-    if (mScale != 1)
-    {
-        cv::Mat resImg;
-        cv::resize(currImg, resImg, cv::Size(0, 0), mScale, mScale);
-        currImg = resImg;
-    }
+    auto currImg = mImgReader->getImage(idx);
+    auto currFts = mFtReader->getFeatures(idx);
 
     cv::Mat res;
-    cv::drawKeypoints(currImg, mFtFiles[idx], res);
+    cv::drawKeypoints(currImg, currFts, res);
     return res;
 }
 
@@ -181,7 +177,7 @@ void MainWindow::prevClicked()
 
 void MainWindow::nextClicked()
 {
-    if (mCurrImg + 1 < mImgFiles.size())
+    if (mCurrImg + 1 < mNumImages)
     {
         mCurrImg++;
         updateScene();
@@ -190,7 +186,7 @@ void MainWindow::nextClicked()
 
 void MainWindow::sliderMoved(int value)
 {
-    if (mImgFiles.size())
+    if (mNumImages)
     {
         mCurrImg = value - 1;
         updateScene();
@@ -199,7 +195,7 @@ void MainWindow::sliderMoved(int value)
 
 void MainWindow::spinChanged(int value)
 {
-    if (mImgFiles.size())
+    if (mNumImages)
     {
         mCurrImg = value - 1;
         updateScene();
