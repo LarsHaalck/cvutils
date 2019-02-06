@@ -27,8 +27,11 @@ public:
     // always cache no matter what
     Value get(const Key& key)
     {
-        if (!mMap.count(key))
-            mMap[key] = mFetcher->get(key);
+        #pragma omp critical
+        {
+            if (!mMap.count(key))
+                mMap[key] = mFetcher->get(key);
+        }
 
         return mMap[key];
     }

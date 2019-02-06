@@ -1,5 +1,5 @@
-#ifndef CVUTILS_FEATURE_FETCHER_H
-#define CVUTILS_FEATURE_FETCHER_H
+#ifndef CVUTILS_DESCRIPTOR_FETCHER_H
+#define CVUTILS_DESCRIPTOR_FETCHER_H
 
 #include <filesystem>
 #include <vector>
@@ -53,4 +53,4 @@ public:
 } // namespace detail
 } // namespace cvutils
 
-#endif // CVUTILS_FEATURE_FETCHER_H
+#endif // CVUTILS_DESCRIPTOR_FETCHER_H

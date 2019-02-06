@@ -10,7 +10,6 @@
 #include "cache/abstractCache.h"
 #include "fetch/descriptorFetcher.h"
 
-
 namespace cvutils
 {
 class DescriptorReader
@@ -25,7 +24,7 @@ public:
         size_t cacheSize = 0);
 
     size_t numImages() { return mSize; }
-    cv::Mat getDescritpro(size_t idx) { return mCache->get(idx); }
+    cv::Mat getDescriptors(size_t idx) { return mCache->get(idx); }
 };
 } // namespace cvutils
 

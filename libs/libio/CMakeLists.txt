@@ -6,20 +6,11 @@ set(sources
     src/featureWriter.cpp
     src/descriptorReader.cpp
     src/descriptorWriter.cpp
+    src/matchesReader.cpp
+    src/matchesWriter.cpp
+    src/config.cpp
 )
 
-
-#add_library(${targetName} STATIC
-#    io/cache/abstractCache.h
-#    io/cache/cacheFactory.h
-#    io/cache/lruCache.h
-#    io/cache/nonCache.h
-#    io/cache/simpleCache.h
-#    io/fetch/abstractFetcher.h
-#    io/fetch/imageFetcher.h
-#    io/imageReader.cpp
-#    io/featureWriter.cpp
-#)
 
 add_library(${targetName} STATIC ${sources})
 target_include_directories(io PUBLIC include)

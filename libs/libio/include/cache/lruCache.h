@@ -33,32 +33,35 @@ public:
 
     Value get(const Key& key)
     {
-        // not in cache
-        if (!mMap.count(key))
+        #pragma omp critical
         {
-            // cache is full
-            if (mMap.size() == mCapacity)
+            // not in cache
+            if (!mMap.count(key))
             {
-                auto node = mList.back();
-                mList.pop_back();
-                mMap.erase(node.first);
+                // cache is full
+                if (mMap.size() == mCapacity)
+                {
+                    auto node = mList.back();
+                    mList.pop_back();
+                    mMap.erase(node.first);
+                }
+
+                // let reader get a new value
+                mList.push_front(std::make_pair(key, mReader->get(key)));
+            }
+            else
+            {
+                // element is in cache, retrieve and move to new position to
+                // avoid re-reading it from file
+                auto pairIt = mMap[key];
+                auto keyValuePair = std::move(*pairIt);
+                mList.erase(pairIt);
+                mList.push_front(keyValuePair);
             }
 
-            // let reader get a new value
-            mList.push_front(std::make_pair(key, mReader->get(key)));
+            // update iterator
+            mMap[key] = mList.begin();
         }
-        else
-        {
-            // element is in cache, retrieve and move to new position to
-            // avoid re-reading it from file
-            auto pairIt = mMap[key];
-            auto keyValuePair = std::move(*pairIt);
-            mList.erase(pairIt);
-            mList.push_front(keyValuePair);
-        }
-
-        // update iterator
-        mMap[key] = mList.begin();
         return mList.front().second;
     }
 
