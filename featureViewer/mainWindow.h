@@ -37,8 +37,8 @@ private:
     QPushButton* mNext;
     size_t mCurrImg;
     size_t mNumImages;
-    std::unique_ptr<cvutils::io::ImageReader> mImgReader;
-    std::unique_ptr<cvutils::io::FeatureReader> mFtReader;
+    std::unique_ptr<ImageReader> mImgReader;
+    std::unique_ptr<FeatureReader> mFtReader;
 
 public:
     MainWindow(QWidget* parent = 0);
@@ -56,8 +56,6 @@ private slots:
     void nextClicked();
     void sliderMoved(int value);
     void spinChanged(int value);
-
-
 };
 }
 

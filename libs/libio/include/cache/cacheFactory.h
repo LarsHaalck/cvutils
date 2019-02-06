@@ -1,19 +1,19 @@
-#ifndef CVUTILS_CACHE_CACHE_FACTORY_H
-#define CVUTILS_CACHE_CACHE_FACTORY_H
+#ifndef CVUTILS_CACHE_FACTORY_H
+#define CVUTILS_CACHE_FACTORY_H
 
 #include <limits>
 
-#include "lruCache.h"
-#include "simpleCache.h"
-#include "nonCache.h"
+#include "cache/lruCache.h"
+#include "cache/simpleCache.h"
+#include "cache/nonCache.h"
 
 namespace cvutils
 {
-namespace cache
+namespace detail
 {
 template <typename Key, typename Value>
 std::unique_ptr<AbstractCache<Key, Value>> createCachePtr(
-    std::shared_ptr<cvutils::fetch::AbstractFetcher<Key, Value>> fetcher,
+    std::shared_ptr<AbstractFetcher<Key, Value>> fetcher,
     size_t cacheSize)
 {
 
@@ -33,6 +33,7 @@ std::unique_ptr<AbstractCache<Key, Value>> createCachePtr(
         return std::make_unique<NonCache<Key, Value>>(fetcher);
     }
 }
-} // namespace cache
+} // namespace detail
 } // namespace cvutils
-#endif // CVUTILS_CACHE_CACHE_FACTORY_H
+
+#endif // CVUTILS_CACHE_FACTORY_H

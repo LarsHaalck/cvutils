@@ -1,21 +1,21 @@
-#ifndef CVUTILS_CACHE_NON_CACHE_H
-#define CVUTILS_CACHE_NON_CACHE_H
+#ifndef CVUTILS_NON_CACHE_H
+#define CVUTILS_NON_CACHE_H
 
 #include <memory>
 
-#include "../fetch/abstractFetcher.h"
+#include "fetch/abstractFetcher.h"
 
 namespace cvutils
 {
-namespace cache
+namespace detail
 {
 template <typename Key, typename Value>
 class NonCache : public AbstractCache<Key, Value>
 {
 private:
-    std::shared_ptr<fetch::AbstractFetcher<Key, Value>> mReader;
+    std::shared_ptr<AbstractFetcher<Key, Value>> mReader;
 public:
-    NonCache(std::shared_ptr<fetch::AbstractFetcher<Key, Value>> reader)
+    NonCache(std::shared_ptr<AbstractFetcher<Key, Value>> reader)
         : mReader(std::move(reader))
     {
     }
@@ -26,7 +26,7 @@ public:
         return mReader->get(key);
     }
 };
-} // namespace cache
+} // namespace detail
 } // namespace cvutils
 
-#endif //CVUTILS_CACHE_NON_CACHE_H
+#endif //CVUTILS_NON_CACHE_H

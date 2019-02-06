@@ -1,11 +1,9 @@
-#ifndef CVUTILS_CACHE_ABSTRACT_CACHE_H
-#define CVUTILS_CACHE_ABSTRACT_CACHE_H
-
-#include <cstddef>
+#ifndef CVUTILS_ABSTRACT_CACHE_H
+#define CVUTILS_ABSTRACT_CACHE_H
 
 namespace cvutils
 {
-namespace cache
+namespace detail
 {
 template <typename Key, typename Value>
 class AbstractCache
@@ -18,8 +16,8 @@ public:
     
 
 };
-} // namespace cache
+} // namespace detail
 } // namespace cvutils
 
 
-#endif //CVUTILS_CACHE_ABSTRACT_CACHE_H
+#endif //CVUTILS_ABSTRACT_CACHE_H

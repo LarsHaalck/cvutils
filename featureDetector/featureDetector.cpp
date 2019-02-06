@@ -15,7 +15,8 @@ FeatureDetector::FeatureDetector(const std::string& imgDir,
     const std::string& txtFile, const std::string& ftDir,
     const std::string& ftFile, float scale)
     : mReader(imgDir, txtFile, scale, cv::ImreadModes::IMREAD_GRAYSCALE, 0)
-    , mWriter(ftDir)
+    , mFtWriter(ftDir)
+    , mDescWriter(ftDir)
     , mFtFile(ftFile)
 {
     if (!std::filesystem::exists(mFtFile)
@@ -43,8 +44,8 @@ void FeatureDetector::run()
         std::vector<cv::KeyPoint> features;
         cv::Mat descriptors;
         ftPtr->detectAndCompute(img, cv::Mat(), features, descriptors);
-        mWriter.writeFeaturesAndDescriptors(mReader.getImageName(i), features,
-            descriptors);
+        mFtWriter.writeFeatures(mReader.getImageName(i), features);
+        mDescWriter.writeDescriptors(mReader.getImageName(i), descriptors);
 
         #pragma omp critical
         bar.progress(current++, numFiles);

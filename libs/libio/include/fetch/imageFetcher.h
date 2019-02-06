@@ -1,5 +1,5 @@
-#ifndef CVUTILS_FETCHER_IMAGE_FETCHER_H
-#define CVUTILS_FETCHER_IMAGE_FETCHER_H
+#ifndef CVUTILS_IMAGE_FETCHER_H
+#define CVUTILS_IMAGE_FETCHER_H
 
 #include <iostream>
 #include <filesystem>
@@ -10,11 +10,11 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "abstractFetcher.h"
+#include "fetch/abstractFetcher.h"
 
 namespace cvutils
 {
-namespace fetch
+namespace detail
 {
 class ImageFetcher : public AbstractFetcher<size_t, cv::Mat>
 {
@@ -103,7 +103,7 @@ private:
 
 
 };
-} // namespace fetch
+} // namespace detail
 } // namespace cvutils
 
-#endif // CVUTILS_FETCHER_IMAGE_FETCHER_H
+#endif // CVUTILS_IMAGE_FETCHER_H

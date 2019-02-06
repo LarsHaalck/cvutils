@@ -1,9 +1,9 @@
-#ifndef CVUTILS_FETCH_ABSTRACT_FETCHER_H
-#define CVUTILS_FETCH_ABSTRACT_FETCHER_H
+#ifndef CVUTILS_ABSTRACT_FETCHER_H
+#define CVUTILS_ABSTRACT_FETCHER_H
 
 namespace cvutils
 {
-namespace fetch
+namespace detail
 {
 template <typename Key, typename Value>
 class AbstractFetcher
@@ -13,8 +13,8 @@ public:
     virtual size_t size() const = 0;
     virtual Value get(const Key& key) const = 0;
 };
-} // namespace fetch
+} // namespace detail
 } // namespace cvutils
 
-#endif //CVUTILS_FETCH_ABSTRACT_FETCHER_H
+#endif //CVUTILS_ABSTRACT_FETCHER_H
 

@@ -1,23 +1,23 @@
-#ifndef CVUTILS_CACHE_SIMPLE_CACHE_H
-#define CVUTILS_CACHE_SIMPLE_CACHE_H
+#ifndef CVUTILS_SIMPLE_CACHE_H
+#define CVUTILS_SIMPLE_CACHE_H
 
 #include <memory>
 #include <unordered_map>
 
-#include "../fetch/abstractFetcher.h"
+#include "fetch/abstractFetcher.h"
 
 namespace cvutils
 {
-namespace cache
+namespace detail
 {
 template <typename Key, typename Value>
 class SimpleCache : public AbstractCache<Key, Value>
 {
 private:
     std::unordered_map<Key, Value> mMap;
-    std::shared_ptr<fetch::AbstractFetcher<Key, Value>> mFetcher;
+    std::shared_ptr<AbstractFetcher<Key, Value>> mFetcher;
 public:
-    SimpleCache(std::shared_ptr<fetch::AbstractFetcher<Key, Value>> fetcher)
+    SimpleCache(std::shared_ptr<AbstractFetcher<Key, Value>> fetcher)
         : mMap()
         , mFetcher(std::move(fetcher))
     {
@@ -33,7 +33,7 @@ public:
         return mMap[key];
     }
 };
-} // namespace cache
+} // namespace detail
 } // namespace cvutils
 
-#endif
+#endif //CVUTILS_SIMPLE_CACHE_H

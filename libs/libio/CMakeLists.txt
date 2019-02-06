@@ -4,6 +4,8 @@ set(sources
     src/imageReader.cpp
     src/featureReader.cpp
     src/featureWriter.cpp
+    src/descriptorReader.cpp
+    src/descriptorWriter.cpp
 )
 
 

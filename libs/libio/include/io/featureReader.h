@@ -1,5 +1,5 @@
-#ifndef CVUTILS_IO_FEATURE_READER_H
-#define CVUTILS_IO_FEATURE_READER_H
+#ifndef CVUTILS_FEATURE_READER_H
+#define CVUTILS_FEATURE_READER_H
 
 #include <filesystem>
 #include <memory>
@@ -13,14 +13,12 @@
 
 namespace cvutils
 {
-namespace io
-{
 class FeatureReader
 {
 private:
-    std::shared_ptr<fetch::FeatureFetcher> mFetcher;
+    std::shared_ptr<detail::FeatureFetcher> mFetcher;
     size_t mSize;
-    std::unique_ptr<cache::AbstractCache<size_t, std::vector<cv::KeyPoint>>> mCache;
+    std::unique_ptr<detail::AbstractCache<size_t, std::vector<cv::KeyPoint>>> mCache;
 public:
     FeatureReader(const std::filesystem::path& imgDir,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftDir,
@@ -29,8 +27,6 @@ public:
     size_t numImages() { return mSize; }
     std::vector<cv::KeyPoint> getFeatures(size_t idx) { return mCache->get(idx); }
 };
-} // namespace io
 } // namespace cvutils
 
-
-#endif // CVUTILS_IO_FEATURE_READER_H
+#endif // CVUTILS_FEATURE_READER_H

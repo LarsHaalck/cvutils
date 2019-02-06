@@ -14,13 +14,13 @@ namespace cvutils
 {
 namespace detail
 {
-class FeatureFetcher : public AbstractFetcher<size_t, std::vector<cv::KeyPoint>>
+class DescriptorFetcher : public AbstractFetcher<size_t, cv::Mat>
 {
 private:
     ImageFetcher mImgFetcher;
     std::filesystem::path mFtDir;
 public:
-    FeatureFetcher(const std::filesystem::path& imgDir,
+    DescriptorFetcher(const std::filesystem::path& imgDir,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftDir)
     : mImgFetcher(imgDir, txtFile)
     , mFtDir(ftDir)
@@ -35,16 +35,18 @@ public:
 
     size_t size() const override { return mImgFetcher.size(); }
 
-    std::vector<cv::KeyPoint> get(const size_t& idx) const override
+    cv::Mat get(const size_t& idx) const override
     {
         std::filesystem::path imgStem(mImgFetcher.getImagePath(idx));
         imgStem = mFtDir / imgStem.stem();
 
-        cv::FileStorage fsFt(imgStem.string() + detail::ftEnding, cv::FileStorage::READ);
-        std::vector<cv::KeyPoint> currKeyPts;
-        cv::read(fsFt[detail::ftKey], currKeyPts);
+        cv::FileStorage fsFt(imgStem.string() + detail::descEnding,
+            cv::FileStorage::READ);
 
-        return currKeyPts;
+        cv::Mat currDesc;
+        cv::read(fsFt[detail::descKey], currDesc);
+
+        return currDesc;
     }
 
 };

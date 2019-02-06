@@ -18,17 +18,12 @@
 #include <QString>
 #include <QInputDialog>
 
-
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
-//#include <opencv2/xfeatures2d.hpp>
 
-#include "io/imageReader.h"
-#include "io/featureReader.h"
 #include "qimgcv/qImgCv.h"
 #include "zoom/qGraphicsZoom.h"
-
 
 namespace cvutils
 {
@@ -52,10 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     mSlider = new QSlider(Qt::Horizontal, this);
     mSlider->setSingleStep(1);
     mSlider->setMinimum(1);
-    connect(mSlider, SIGNAL(sliderMoved(int)), this, SLOT(sliderMoved(int)));
     mSpinBox = new QSpinBox(this);
-    connect(mSpinBox, SIGNAL(valueChanged(int)), this,
-        SLOT(spinChanged(int)));
 
     QLabel* slashLabel = new QLabel("/", this);
     mNumFrames = new QLabel("0", this);
@@ -126,8 +118,8 @@ void MainWindow::open()
 void MainWindow::populateScene(const std::string& imgDir, const std::string& txtFile,
     const std::string& ftDir, float scale)
 {
-    mImgReader = std::make_unique<cvutils::io::ImageReader>(imgDir, txtFile, scale);
-    mFtReader = std::make_unique<cvutils::io::FeatureReader>(imgDir, txtFile, ftDir);
+    mImgReader = std::make_unique<ImageReader>(imgDir, txtFile, scale);
+    mFtReader = std::make_unique<FeatureReader>(imgDir, txtFile, ftDir);
     
     //mFtFiles = ftFiles;
     mNumImages = mImgReader->numImages();
@@ -140,6 +132,9 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
     mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(0))));
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
     mCurrImg = 0;
+
+    connect(mSlider, SIGNAL(sliderMoved(int)), this, SLOT(sliderMoved(int)));
+    connect(mSpinBox, SIGNAL(valueChanged(int)), this, SLOT(spinChanged(int)));
 
 }
 
@@ -160,8 +155,14 @@ void MainWindow::updateScene()
     mImgScene->clear();
     mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(mCurrImg))));
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
+
+    mSpinBox->blockSignals(true);
     mSpinBox->setValue(mCurrImg + 1);
+    mSpinBox->blockSignals(false);
+
+    mSlider->blockSignals(true);
     mSlider->setValue(mCurrImg + 1);
+    mSlider->blockSignals(false);
 
 }
 

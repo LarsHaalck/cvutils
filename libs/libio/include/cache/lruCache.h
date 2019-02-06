@@ -1,8 +1,8 @@
-#ifndef CVUTILS_CACHE_LRU_CACHE_H
-#define CVUTILS_CACHE_LRU_CACHE_H
+#ifndef CVUTILS_LRU_CACHE_H
+#define CVUTILS_LRU_CACHE_H
 
-#include "abstractCache.h"
-#include "../fetch/abstractFetcher.h"
+#include "cache/abstractCache.h"
+#include "fetch/abstractFetcher.h"
 
 #include <list>
 #include <memory>
@@ -10,7 +10,7 @@
 
 namespace cvutils
 {
-namespace cache
+namespace detail
 {
 template <typename Key, typename Value>
 class LRUCache : public AbstractCache<Key, Value>
@@ -20,9 +20,9 @@ private:
     size_t mCapacity;
     std::list<listNode> mList;
     std::unordered_map<Key, typename std::list<listNode>::iterator> mMap;
-    std::shared_ptr<fetch::AbstractFetcher<Key, Value>> mReader;
+    std::shared_ptr<AbstractFetcher<Key, Value>> mReader;
 public:
-    LRUCache(size_t capacity, std::shared_ptr<fetch::AbstractFetcher<Key, Value>> reader)
+    LRUCache(size_t capacity, std::shared_ptr<AbstractFetcher<Key, Value>> reader)
         : mCapacity(capacity)
         , mList()
         , mMap(capacity)
@@ -63,7 +63,7 @@ public:
     }
 
 };
-} // namespace cache
+} // namespace detail
 } // namespace cvutils
 
-#endif // CVUTILS_CACHE_LRU_CACHE_H
+#endif // CVUTILS_LRU_CACHE_H
