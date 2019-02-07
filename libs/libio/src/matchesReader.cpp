@@ -8,7 +8,7 @@ using Matches = std::vector<cv::DMatch>;
 namespace cvutils
 {
 MatchesReader::MatchesReader(const std::filesystem::path& ftDir, MatchType type,
-    size_t cacheSize)
+    int cacheSize)
     : mFetcher(std::make_shared<detail::MatchesFetcher>(ftDir, type))
     , mSize(mFetcher->size())
     , mCache(detail::createCachePtr<idPair, Matches>(mFetcher, cacheSize))

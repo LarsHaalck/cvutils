@@ -14,15 +14,15 @@ namespace detail
 template <typename Key, typename Value>
 std::unique_ptr<AbstractCache<Key, Value>> createCachePtr(
     std::shared_ptr<AbstractFetcher<Key, Value>> fetcher,
-    size_t cacheSize)
+    int cacheSize)
 {
 
-    if (cacheSize == std::numeric_limits<std::size_t>::max())
+    if (cacheSize < 0)
     {
         // infinite cache
         return std::make_unique<SimpleCache<Key, Value>>(fetcher);
     }
-    else if (cacheSize) 
+    else if (cacheSize > 0) 
     {
         // use least recently used cache
         return std::make_unique<LRUCache<Key, Value>>(cacheSize, fetcher);

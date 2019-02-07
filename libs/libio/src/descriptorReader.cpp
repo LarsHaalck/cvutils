@@ -6,7 +6,7 @@ namespace cvutils
 {
 DescriptorReader::DescriptorReader(const std::filesystem::path& imgDir,
     const std::filesystem::path& txtFile, const std::filesystem::path& ftDir,
-    size_t cacheSize)
+    int cacheSize)
     : mFetcher(std::make_shared<detail::DescriptorFetcher>(imgDir, txtFile, ftDir))
     , mSize(mFetcher->size())
     , mCache(detail::createCachePtr<size_t, cv::Mat>(mFetcher, cacheSize))

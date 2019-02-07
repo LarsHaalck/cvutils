@@ -23,10 +23,11 @@ private:
     std::filesystem::path mFtDir;
     int mMatcher;
     int mWindow;
+    int mCacheSize;
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
-        int matcher, int window);
+        int matcher, int window, int cacheSize);
     void run();
 
 private:
@@ -36,7 +37,9 @@ private:
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
 
+    void getPutativeMatchesParallel();
     void getPutativeMatches();
+    void getGeomMatchesParallel();
     void getGeomMatches();
 
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,

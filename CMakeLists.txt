@@ -29,5 +29,4 @@ add_subdirectory(libs)
 add_subdirectory(featureDetector)
 add_subdirectory(featureViewer)
 add_subdirectory(featureMatcher)
-
-#add_subdirectory(featureMatchesViewer)
+add_subdirectory(featureMatchesViewer)

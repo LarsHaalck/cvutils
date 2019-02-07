@@ -17,26 +17,102 @@ namespace cvutils
         const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile,
         const std::filesystem::path& ftDir,
-        int matcher,
-        int window)
+        int matcher, int window, int cacheSize)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
     , mMatcher(matcher)
     , mWindow(window)
+    , mCacheSize(cacheSize)
 {
 
 }
 
 void FeatureMatcher::run()
 {
+    #ifdef _OPENMP
+    getPutativeMatchesParallel();
+    getGeomMatchesParallel();
+    #else
     getPutativeMatches();
     getGeomMatches();
+    #endif
 }
 
+void FeatureMatcher::getPutativeMatchesParallel()
+{
+    // disable cache
+    DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir, 0);
+    MatchesWriter matchesWriter(mFtDir, MatchType::Putative);
+
+    auto pairList = getPairList(descReader.numImages());
+    auto descMatcher = getMatcher();
+
+    // NOTE: opencv doesnt support CV_32U
+    cv::Mat pairMat = cv::Mat::zeros(pairList.size(), 2, CV_32S);
+    std::vector<size_t> matchSizes(pairList.size());
+
+    int cacheSize = mCacheSize;
+    int listSize = static_cast<int>(pairList.size());
+    if (mCacheSize < 0)
+        cacheSize = listSize;
+
+    auto cache = std::vector<cv::Mat>(2 * cacheSize);
+    int its = 1 + ((listSize - 1) / cacheSize);
+
+    std::cout << "\nPutative matching..." << std::endl;
+    tqdm bar;
+    size_t count = 0 ;
+    for (int i = 0; i < its ; i++)
+    {
+        auto globalStart = i * cacheSize;
+        auto globalEnd = (i + 1) * cacheSize;
+        if (globalEnd > listSize)
+            globalEnd = listSize;
+
+        auto localEnd = globalEnd - globalStart;
+
+        // fill cache
+        for (int k = 0, l = globalStart; k < localEnd; k++, l++)
+        {
+            auto pair = pairList[l];
+            auto idI = pair.first;
+            auto idJ = pair.second;
+            cache[2*k] = descReader.getDescriptors(idI);
+            cache[2*k + 1] = descReader.getDescriptors(idJ);
+        }
+
+        // match on cache[localStart, localEnd)
+        std::vector<std::vector<cv::DMatch>> matches(localEnd);
+        #pragma omp parallel for
+        for (int k = 0; k < localEnd; k++)
+        {
+            std::vector<cv::DMatch> currMatches;
+            descMatcher->match(cache[2*k], cache[2*k + 1], currMatches);
+            matches[k] = currMatches;
+        }
+
+        count += localEnd;
+        bar.progress(count, listSize);
+        // write and fill pairMat
+        for (int k = 0, l = globalStart; k < localEnd; k++, l++)
+        {
+            //matches[k] = currMatches;
+            auto pair = pairList[l];
+            auto idI = pair.first;
+            auto idJ = pair.second;
+            pairMat.at<int>(l, 0) = idI;
+            pairMat.at<int>(l, 1) = idJ;
+            matchSizes[l] = matches[k].size();
+            matchesWriter.writeMatches(idI, idJ, matches[k]);
+        }
+    }
+    matchesWriter.writePairMat(pairMat, matchSizes);
+
+}
 void FeatureMatcher::getPutativeMatches()
 {
-    DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir);
+    DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
     MatchesWriter matchesWriter(mFtDir, MatchType::Putative);
 
     auto pairList = getPairList(descReader.numImages());
@@ -49,13 +125,11 @@ void FeatureMatcher::getPutativeMatches()
     std::cout << "\nPutative matching..." << std::endl;
     tqdm bar;
     size_t count = 0;
-    #pragma omp parallel for
     for (size_t k = 0; k < pairList.size(); k++)
     {
         auto pair = pairList[k];
         size_t idI = pair.first;
         size_t idJ = pair.second;
-        std::cout << "Reading " << idI << ", " << idJ << std::endl;
         auto descI = descReader.getDescriptors(idI);
         auto descJ = descReader.getDescriptors(idJ);
 
@@ -66,20 +140,99 @@ void FeatureMatcher::getPutativeMatches()
         pairMat.at<int>(k, 1) = idJ;
         matchSizes[k] = currMatches.size();
 
-        /* matchesWriter.writeMatches(idI, idJ, currMatches); */
-        #pragma omp critical
-        {
-            bar.progress(count++, pairList.size());
-        }
+        matchesWriter.writeMatches(idI, idJ, currMatches);
+        bar.progress(count++, pairList.size());
     }
-    /* matchesWriter.writePairMat(pairMat, matchSizes); */
+    matchesWriter.writePairMat(pairMat, matchSizes);
 }
 
+void FeatureMatcher::getGeomMatchesParallel()
+{
+    MatchesReader matchesReader(mFtDir, MatchType::Putative, 0);
+    MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
+    FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, 0);
+
+    auto pairMat = matchesReader.getPairMat();
+    std::vector<size_t> matchSizes(pairMat.rows);
+
+    int cacheSize = mCacheSize;
+    int listSize = static_cast<int>(pairMat.rows);
+    if (mCacheSize < 0)
+        cacheSize = listSize;
+
+    auto cache0 = std::vector<std::vector<cv::KeyPoint>>(2 * cacheSize);
+    auto cache1 = std::vector<std::vector<cv::DMatch>>(cacheSize);
+    int its = 1 + ((listSize - 1) / cacheSize);
+
+    std::cout << "\nGeometric matching..." << std::endl;
+    tqdm bar;
+    size_t count = 0 ;
+    for (int i = 0; i < its ; i++)
+    {
+        auto globalStart = i * cacheSize;
+        auto globalEnd = (i + 1) * cacheSize;
+        if (globalEnd > listSize)
+            globalEnd = listSize;
+
+        auto localEnd = globalEnd - globalStart;
+
+        // fill cache
+        for (int k = 0, l = globalStart; k < localEnd; k++, l++)
+        {
+            auto idI = pairMat.at<int>(l, 0);
+            auto idJ = pairMat.at<int>(l, 1);
+            cache0[2*k] = featReader.getFeatures(idI);
+            cache0[2*k + 1] = featReader.getFeatures(idJ);
+            cache1[k] = matchesReader.getMatches(idI, idJ);
+        }
+
+        // match on cache[localStart, localEnd)
+        std::vector<std::vector<cv::DMatch>> matches(localEnd);
+        #pragma omp parallel for
+        for (int k = 0; k < localEnd; k++)
+        {
+            auto& matches = cache1[k];
+            const auto& featsI = cache0[2*k];
+            const auto& featsJ = cache0[2*k + 1];
+            std::vector<cv::Point2f> src, dst;
+            for (size_t i = 0; i < matches.size(); i++)
+            {
+                src.push_back(featsI[matches[i].queryIdx].pt);
+                dst.push_back(featsJ[matches[i].trainIdx].pt);
+            }
+
+            auto mask = getInlierMask(src, dst);
+            std::vector<cv::DMatch> filteredMatches;
+            for (size_t r = 0; r < mask.size(); r++)
+            {
+                if (mask[r])
+                   filteredMatches.push_back(matches[r]);
+            }
+
+            matches = filteredMatches;
+        }
+        count += localEnd;
+        bar.progress(count, listSize);
+
+        // write and fill pairMat
+        for (int k = 0, l = globalStart; k < localEnd; k++, l++)
+        {
+            //matches[k] = currMatches;
+            auto idI = pairMat.at<int>(l, 0);
+            auto idJ = pairMat.at<int>(l, 1);
+            pairMat.at<int>(l, 0) = idI;
+            pairMat.at<int>(l, 1) = idJ;
+            matchSizes[l] = matches[k].size();
+            matchesWriter.writeMatches(idI, idJ, matches[k]);
+        }
+    }
+    matchesWriter.writePairMat(pairMat, matchSizes);
+}
 void FeatureMatcher::getGeomMatches()
 {
-    MatchesReader matchesReader(mFtDir, MatchType::Putative);
+    MatchesReader matchesReader(mFtDir, MatchType::Putative, mCacheSize);
     MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
-    FeatureReader featReader(mImgFolder, mTxtFile, mFtDir);
+    FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
 
     std::cout << "\nGeometric verification..." << std::endl;
     tqdm bar;
@@ -87,7 +240,6 @@ void FeatureMatcher::getGeomMatches()
     auto pairMat = matchesReader.getPairMat();
     std::vector<size_t> matchSizes(pairMat.rows);
     // for every matching image pair
-    #pragma omp parallel for
     for (int k = 0; k < pairMat.rows; k++)
     {
         auto idI = pairMat.at<int>(k, 0);
@@ -114,11 +266,8 @@ void FeatureMatcher::getGeomMatches()
         matches = filteredMatches;
         matchSizes[k] = filteredMatches.size();
 
-        #pragma omp critical
-        {
-            matchesWriter.writeMatches(idI, idJ, matches);
-            bar.progress(count++, pairMat.rows);
-        }
+        matchesWriter.writeMatches(idI, idJ, matches);
+        bar.progress(count++, pairMat.rows);
 
     }
     matchesWriter.writePairMat(pairMat, matchSizes);
@@ -140,26 +289,6 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomo(const std::vector<cv::Point
         mask = std::vector<uchar>(src.size(), 1);
     return mask;
 }
-
-//void FeatureMatcher::test(const std::vector<std::string>& imgList)
-//{
-//    auto feats = misc::getFtVecs(imgList, mFtFolder);
-//    auto matchPair = misc::getMatches(mFtFolder, detail::MatchType::Putative);
-//    const auto& pairMat = matchPair.first;
-//    const auto& matches = matchPair.second;
-//    for(int k = 0; k < pairMat.rows; k++)
-//    {
-//        size_t i  = pairMat.at<int>(k, 0);
-//        size_t j = pairMat.at<int>(k, 1);
-//        cv::Mat imgI = cv::imread(imgList[i]);
-//        cv::Mat imgJ = cv::imread(imgList[j]);
-//
-//        cv::Mat res;
-//        cv::drawMatches(imgI, feats[i], imgJ, feats[j], matches[k], res);
-//        cv::imshow("bla", res);
-//        cv::waitKey(0);
-//    }
-//}
 
 std::vector<std::pair<size_t, size_t>> FeatureMatcher::getPairList(size_t size)
 {
@@ -209,60 +338,5 @@ cv::Ptr<cv::DescriptorMatcher> FeatureMatcher::getMatcher()
 
     }
 }
-/* std::pair<size_t, std::vector<bool>> FeatureMatcher::getPairMatMask( */
-/*     const std::vector<std::vector<cv::DMatch>>& matches) */
-/* { */
-
-/*     auto ids = std::vector<bool>(matches.size(), false); */
-/*     size_t count = 0; */
-/*     for (size_t i = 0; i < matches.size(); i++) */
-/*     { */
-/*         if (!matches[i].empty()) */
-/*         { */
-/*             ids[i] = true; */
-/*             count++; */
-/*         } */
-/*     } */
-/*     return {count, ids}; */
-/* } */
-
-/* void FeatureMatcher::write(const cv::Mat& pairMat, */
-/*     const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type) */
-/* { */
-/*     std::string ending = (type == detail::MatchType::Putative) */
-/*         ? "-putative.yml.gz" */
-/*         : "-geometric.yml.gz"; */
-
-/*     std::filesystem::path base("matches"); */
-/*     base = mFtFolder / base; */
-/*     cv::FileStorage matchFile(base.string() + ending, */
-/*         cv::FileStorage::WRITE); */
-
-/*     if (!matchFile.isOpened()) */
-/*     { */
-/*         std::cout << "Could not open matches file for writing" << std::endl; */
-/*         return; */
-/*     } */
-
-/*     auto sizeIdPair = getPairMatMask(matches); */
-/*     auto truncPairMat = cv::Mat(sizeIdPair.first, 2, pairMat.type()); */
-/*     for(int r = 0, k = 0; r < pairMat.rows; r++) */
-/*     { */
-/*         if (sizeIdPair.second[r]) */
-/*         { */
-/*             truncPairMat.at<int>(k, 0) = pairMat.at<int>(r, 0); */
-/*             truncPairMat.at<int>(k++, 1) = pairMat.at<int>(r, 1); */
-/*         } */
-/*     } */
-
-/*     cv::write(matchFile, "pairMat", truncPairMat); */
-/*     size_t i = 0; */
-/*     for (const auto& match : matches) */
-/*     { */
-/*         if (!match.empty()) */
-/*             cv::write(matchFile, std::string("matches_") + std::to_string(i++), match); */
-/*     } */
-
-/* } */
 
 }

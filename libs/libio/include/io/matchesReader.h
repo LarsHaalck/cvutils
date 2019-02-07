@@ -21,7 +21,7 @@ private:
         std::vector<cv::DMatch>>> mCache;
 public:
     MatchesReader(const std::filesystem::path& ftDir, MatchType type,
-        size_t cacheSize = 0);
+        int cacheSize = 0);
 
     size_t numMatches() const;
     std::vector<cv::DMatch> getMatches(size_t idI, size_t idJ);

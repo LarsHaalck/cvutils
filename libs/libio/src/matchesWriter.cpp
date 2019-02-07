@@ -26,7 +26,7 @@ std::pair<size_t, std::vector<bool>> MatchesWriter::getPairMatMask(
     size_t count = 0;
     for (size_t i = 0; i < matchSizes.size(); i++)
     {
-        if (!matchSizes[i])
+        if (matchSizes[i])
         {
             ids[i] = true;
             count++;

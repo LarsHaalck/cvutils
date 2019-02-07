@@ -21,7 +21,7 @@ private:
 public:
     DescriptorReader(const std::filesystem::path& imgDir,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftDir,
-        size_t cacheSize = 0);
+        int cacheSize = 0);
 
     size_t numImages() { return mSize; }
     cv::Mat getDescriptors(size_t idx) { return mCache->get(idx); }

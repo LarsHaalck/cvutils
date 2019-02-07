@@ -32,7 +32,7 @@ public:
 
         // adds filename to ftDir (implicitly casted to filesystem::path)
         auto fileName = (ftDir / detail::matchTypeToFileName(type));
-        mFile = cv::FileStorage(fileName.string(), cv::FileStorage::READ);
+        mFile.open(fileName.string(), cv::FileStorage::READ);
         cv::read(mFile[detail::pairMatKey], mPairMat);
 
     }

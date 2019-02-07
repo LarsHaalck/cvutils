@@ -21,7 +21,7 @@ private:
 public:
     ImageReader(const std::filesystem::path& imgDir,
         const std::filesystem::path& txtFile, float scale = 1.0f,
-        cv::ImreadModes mode = cv::ImreadModes::IMREAD_UNCHANGED, size_t cacheSize = 0);
+        cv::ImreadModes mode = cv::ImreadModes::IMREAD_UNCHANGED, int cacheSize = 0);
 
     size_t numImages() { return mSize; }
     cv::Mat getImage(size_t idx) { return mCache->get(idx); }
