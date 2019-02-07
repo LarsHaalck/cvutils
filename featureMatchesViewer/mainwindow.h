@@ -12,7 +12,7 @@
 #include <QWidget>
 
 #include "document.hpp"
-#include "io.h"
+#include "io/matchType.h"
 
 class QGraphicsScene;
 class MainFrame;
@@ -33,7 +33,7 @@ private:
 
     // Open the openMVG data and create the QT item to visualize the pair
     void populateScene(const std::string& imgDir, const std::string& txtFile,
-        const std::string& ftDir, float scale, detail::MatchType type);
+        const std::string& ftDir, float scale, MatchType type);
 
 
     QGraphicsScene* scene;

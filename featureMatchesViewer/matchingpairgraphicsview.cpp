@@ -24,8 +24,8 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 
-#include "qImgCv.h"
-#include "qGraphicsZoom.h"
+#include "qimgcv/qImgCv.h"
+#include "zoom/qGraphicsZoom.h"
 
 MatchingPairGraphicsView::MatchingPairGraphicsView
 (
@@ -108,7 +108,7 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
 
                 QGraphicsScene* scene = new QGraphicsScene(this);
                 QGraphicsView* view = new QGraphicsView(scene);
-                new cvutils::misc::Graphics_view_zoom(view);
+                new Graphics_view_zoom(view);
 
                 scene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(matchesImg)));
                 view->fitInView(scene->itemsBoundingRect(), Qt::KeepAspectRatio);
