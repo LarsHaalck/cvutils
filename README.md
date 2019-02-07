@@ -1,3 +1,4 @@
+This project is broken. Do not use
 # OpenCV-Utilities
 This repository supplies four handy tools for fast prototyping of 
 feature based projects.

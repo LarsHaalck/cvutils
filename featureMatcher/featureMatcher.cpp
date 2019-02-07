@@ -117,10 +117,10 @@ void FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList)
 
         //build point matrices
         std::vector<cv::Point2f> src, dst;
-        for (size_t i = 0; i < matches[k].size(); i++)
+        for (size_t i = 0; i < matches.size(); i++)
         {
-            src.push_back(fts[srcId][matches[k][i].queryIdx].pt);
-            dst.push_back(fts[dstId][matches[k][i].trainIdx].pt);
+            src.push_back(fts[srcId][matches[i].queryIdx].pt);
+            dst.push_back(fts[dstId][matches[i].trainIdx].pt);
         }
         auto mask = getInlierMask(src, dst);
         std::vector<cv::DMatch> filteredMatches;
@@ -130,7 +130,7 @@ void FeatureMatcher::getGeomMatches(const std::vector<std::string>& imgList)
                filteredMatches.push_back(matches[k][r]);
         }
 
-        matches[k] = filteredMatches;
+        matches = filteredMatches;
 
         #pragma omp critical
         bar.progress(count++, pairMat.rows);

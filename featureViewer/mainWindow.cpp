@@ -125,8 +125,8 @@ void MainWindow::open()
 void MainWindow::populateScene(const QString& imgDir, const QString& txtFile,
     const QString& ftDir)
 {
-    auto imgFiles = misc::getImgFiles(imgDir.toStdString(), txtFile.toStdString());
-    auto ftFiles = misc::getFtVecs(imgFiles, ftDir.toStdString());
+    auto imgFiles = misc::IO::getImgFiles(imgDir.toStdString(), txtFile.toStdString());
+    auto ftFiles = misc::IO::getFtVecs(imgFiles, ftDir.toStdString());
 
     mImgFiles = imgFiles;
     mFtFiles = ftFiles;
