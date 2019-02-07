@@ -35,8 +35,6 @@ void FeatureDetector::run()
 
     tqdm bar;
     size_t current = 0;
-    // NOTE: parallel works only in this case
-    // this underlying storage does not cache and is thus thread safe
     #pragma omp parallel for
     for (size_t i = 0; i < numFiles; i++)
     {

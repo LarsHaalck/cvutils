@@ -7,6 +7,7 @@
 #include <list>
 #include <memory>
 #include <unordered_map>
+#include <thread>
 
 namespace cvutils
 {
@@ -21,6 +22,8 @@ private:
     std::list<listNode> mList;
     std::unordered_map<Key, typename std::list<listNode>::iterator> mMap;
     std::shared_ptr<AbstractFetcher<Key, Value>> mReader;
+
+    std::mutex mMutex;
 public:
     LRUCache(int capacity, std::shared_ptr<AbstractFetcher<Key, Value>> reader)
         : mCapacity(capacity)
@@ -33,6 +36,7 @@ public:
 
     Value get(const Key& key)
     {
+        std::lock_guard<std::mutex> lock(mMutex);
         // not in cache
         if (!mMap.count(key))
         {

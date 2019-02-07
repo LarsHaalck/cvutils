@@ -37,9 +37,7 @@ private:
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
 
-    void getPutativeMatchesParallel();
     void getPutativeMatches();
-    void getGeomMatchesParallel();
     void getGeomMatches();
 
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
