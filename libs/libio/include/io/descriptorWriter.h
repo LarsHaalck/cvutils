@@ -17,7 +17,7 @@ private:
     std::filesystem::path mFtDir;
 public:
     DescriptorWriter(const std::filesystem::path& ftDir);
-    bool writeDescriptors(const std::string& imgFilePath,
+    void writeDescriptors(const std::string& imgFilePath,
         const cv::Mat& descriptors);
 
 };

@@ -18,7 +18,7 @@ private:
     std::filesystem::path mFtDir;
 public:
     FeatureWriter(const std::filesystem::path& ftDir);
-    bool writeFeatures(const std::string& imgFilePath,
+    void writeFeatures(const std::string& imgFilePath,
         const std::vector<cv::KeyPoint>& features);
 };
 } // namespace cvutils

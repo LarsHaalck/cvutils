@@ -39,8 +39,15 @@ public:
     {
         std::filesystem::path imgStem(mImgFetcher.getImagePath(idx));
         imgStem = mFtDir / imgStem.stem();
+        std::filesystem::path fileName(imgStem.string() + detail::ftEnding);
 
-        cv::FileStorage fsFt(imgStem.string() + detail::ftEnding, cv::FileStorage::READ);
+        cv::FileStorage fsFt(fileName.string(), cv::FileStorage::READ);
+        if (!fsFt.isOpened())
+        {
+            throw std::filesystem::filesystem_error("Error opening feature file",
+                fileName, std::make_error_code(std::errc::io_error));
+        }
+
         std::vector<cv::KeyPoint> currKeyPts;
         cv::read(fsFt[detail::ftKey], currKeyPts);
 

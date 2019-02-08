@@ -28,6 +28,6 @@ struct Document
     std::filesystem::path ftDir;
     cvutils::MatchType type;
 
-    int getMatchRow(size_t i, size_t j);
-    void eraseMatchRow(size_t k);
+    int getMatchRow(int i, int j);
+    void eraseMatchRow(int k);
 };

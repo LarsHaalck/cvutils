@@ -25,8 +25,8 @@ class MainWindow : public QWidget
 public:
     MainWindow(QWidget *parent = 0);
 
-    private slots:
-        void open();
+private slots:
+    void open();
     void save();
 
 private:

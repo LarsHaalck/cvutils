@@ -33,8 +33,14 @@ public:
         // adds filename to ftDir (implicitly casted to filesystem::path)
         auto fileName = (ftDir / detail::matchTypeToFileName(type));
         mFile.open(fileName.string(), cv::FileStorage::READ);
-        cv::read(mFile[detail::pairMatKey], mPairMat);
 
+        if (!mFile.isOpened())
+        {
+            throw std::filesystem::filesystem_error("Error opening matches file",
+                fileName, std::make_error_code(std::errc::io_error));
+        }
+
+        cv::read(mFile[detail::pairMatKey], mPairMat);
     }
 
     cv::Mat getPairMat() const { return mPairMat; }

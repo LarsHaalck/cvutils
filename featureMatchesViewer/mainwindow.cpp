@@ -84,7 +84,7 @@ void MainWindow::open()
     items << "Putative" << "Geometric" << "Putative filtered" << "Geometric filtered";
     QString item = QInputDialog::getItem(this, tr("Select match type"), tr("type"),
         items, 0, false, &ok);
-    MatchType type;
+    MatchType type(MatchType::Putative);
     if (item == items[0])
         type = MatchType::Putative;
     else if (item == items[1])
@@ -106,26 +106,30 @@ void MainWindow::save()
             || doc.type == MatchType::PutativeFiltered)
     {
         MatchesWriter writer(doc.ftDir, MatchType::PutativeFiltered);
-        writer.writePairMat(doc.pairMat);
+        std::vector<size_t> matchSizes(doc.pairMat.rows);
 
         for(int k = 0; k < doc.pairMat.rows; k++)
         {
             int idI = doc.pairMat.at<int>(k, 0);
             int idJ = doc.pairMat.at<int>(k, 1);
             writer.writeMatches(idI, idJ, doc.matches[k]);
+            matchSizes[k] = doc.matches[k].size();
         }
+        writer.writePairMat(doc.pairMat, matchSizes);
     }
     else
     {
         MatchesWriter writer(doc.ftDir, MatchType::GeometricFiltered);
-        writer.writePairMat(doc.pairMat);
+        std::vector<size_t> matchSizes(doc.pairMat.rows);
 
         for(int k = 0; k < doc.pairMat.rows; k++)
         {
             int idI = doc.pairMat.at<int>(k, 0);
             int idJ = doc.pairMat.at<int>(k, 1);
             writer.writeMatches(idI, idJ, doc.matches[k]);
+            matchSizes[k] = doc.matches[k].size();
         }
+        writer.writePairMat(doc.pairMat, matchSizes);
     }
 }
 
@@ -158,6 +162,10 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
         size_t i = doc.pairMat.at<int>(k, 0);
         size_t j = doc.pairMat.at<int>(k, 1);
         doc.matches.push_back(matchReader.getMatches(i, j));
+
+        // only for vis purposes
+        if (doc.matches[k].empty())
+            continue;
 
         const QColor color(0, 0, 255, 127);
         QGraphicsItem* item = new PairGraphicsItem(color, i , j, doc.matches[k].size());

@@ -61,6 +61,13 @@ public:
     cv::Mat get(const size_t& idx) const override
     {
         cv::Mat img = cv::imread(mImgFiles[idx], mMode);
+
+        if (img.empty())
+        {
+            throw std::filesystem::filesystem_error("Error reading image",
+                mImgFiles[idx], std::make_error_code(std::errc::no_such_file_or_directory));
+        }
+
         if (mScale != 1.0f)
         {
             cv::Mat resImg;

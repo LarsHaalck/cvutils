@@ -15,21 +15,21 @@ DescriptorWriter::DescriptorWriter(const std::filesystem::path& ftDir)
 }
 
 
-bool DescriptorWriter::writeDescriptors(const std::string& imgName,
+void DescriptorWriter::writeDescriptors(const std::string& imgName,
     const cv::Mat& descriptors)
 {
     std::filesystem::path imgStem(imgName);
     imgStem = mFtDir / imgStem.stem();
-    cv::FileStorage fsDesc(imgStem.string() + detail::descEnding, cv::FileStorage::WRITE);
+    std::filesystem::path fileName(imgStem.string() + detail::descEnding);
+    cv::FileStorage fsDesc(fileName, cv::FileStorage::WRITE);
     if (!fsDesc.isOpened())
     {
-        std::cout << "Could not open descriptor file for writing" << std::endl;
-        return false;
+        throw std::filesystem::filesystem_error("Error opening descriptor file",
+            fileName, std::make_error_code(std::errc::io_error));
     }
-    else
-        cv::write(fsDesc, detail::descKey, descriptors);
 
-    return true;
+    cv::write(fsDesc, detail::descKey, descriptors);
+
 }
 
 } // namespace cvutils

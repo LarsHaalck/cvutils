@@ -39,9 +39,16 @@ public:
     {
         std::filesystem::path imgStem(mImgFetcher.getImagePath(idx));
         imgStem = mFtDir / imgStem.stem();
+        std::filesystem::path fileName(imgStem.string() + detail::descEnding);
 
-        cv::FileStorage fsFt(imgStem.string() + detail::descEnding,
+        cv::FileStorage fsFt(fileName.string(),
             cv::FileStorage::READ);
+
+        if (!fsFt.isOpened())
+        {
+            throw std::filesystem::filesystem_error("Error opening matches file",
+                fileName, std::make_error_code(std::errc::io_error));
+        }
 
         cv::Mat currDesc;
         cv::read(fsFt[detail::descKey], currDesc);

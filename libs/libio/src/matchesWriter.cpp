@@ -16,6 +16,12 @@ MatchesWriter::MatchesWriter(const std::filesystem::path& ftDir, MatchType type)
     // adds filename to ftDir (implicitly casted to filesystem::path)
     auto fileName = (ftDir / detail::matchTypeToFileName(type));
     mFile = cv::FileStorage(fileName.string(), cv::FileStorage::WRITE);
+
+    if (!mFile.isOpened())
+    {
+        throw std::filesystem::filesystem_error("Error opening matches file",
+            fileName, std::make_error_code(std::errc::io_error));
+    }
 }
 
 

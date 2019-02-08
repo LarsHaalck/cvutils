@@ -13,21 +13,19 @@ FeatureWriter::FeatureWriter(const std::filesystem::path& ftDir)
     std::filesystem::create_directory(ftDir);
 }
 
-bool FeatureWriter::writeFeatures(const std::string& imgName,
+void FeatureWriter::writeFeatures(const std::string& imgName,
     const std::vector<cv::KeyPoint>& features)
 {
     std::filesystem::path imgStem(imgName);
     imgStem = mFtDir / imgStem.stem();
-    cv::FileStorage fsFt(imgStem.string() + detail::ftEnding, cv::FileStorage::WRITE);
+    std::filesystem::path fileName(imgStem.string() + detail::ftEnding);
+    cv::FileStorage fsFt(fileName, cv::FileStorage::WRITE);
 
     if (!fsFt.isOpened())
     {
-        std::cout << "Could not open feature file for writing" << std::endl;
-        return false;
+        throw std::filesystem::filesystem_error("Error opening feature file",
+            fileName, std::make_error_code(std::errc::io_error));
     }
-    else
-        cv::write(fsFt, detail::ftKey, features);
-
-    return true;
+    cv::write(fsFt, detail::ftKey, features);
 }
 } // namespace cvutils

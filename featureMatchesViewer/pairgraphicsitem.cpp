@@ -17,10 +17,10 @@ PairGraphicsItem::PairGraphicsItem
   unsigned int y,
   unsigned int matches_count
 )
-: color(color),
-  x(x),
+: x(x),
   y(y),
-  matches_count(matches_count)
+  matches_count(matches_count),
+  color(color)
 {
     setFlags(ItemIsSelectable);
     setAcceptHoverEvents(true);
@@ -57,7 +57,7 @@ void PairGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *
   {
     const QBrush b = painter->brush();
 
-    painter->setBrush(QBrush(fillColor.dark(option->state & (QStyle::State_Sunken ? 120 : 100))));
+    painter->setBrush(QBrush(fillColor.dark((option->state & QStyle::State_Sunken) ? 120 : 100)));
     painter->drawRect(QRect(0, 0, 100, 100));
     painter->setBrush(b);
 
