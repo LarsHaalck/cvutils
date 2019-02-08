@@ -23,7 +23,7 @@
 **
 ****************************************************************************/
 
-#include "qImgCv.h"
+#include "qimgcv/qImgCv.h"
 #include <QImage>
 #include <QSysInfo>
 #include <QDebug>
@@ -248,7 +248,7 @@ QImage mat2Image(const cv::Mat &mat, MatColorOrder order, QImage::Format formatH
         return QImage();
 
     //Adjust mat channels if needed, and find proper QImage format.
-    QImage::Format format;
+    QImage::Format format = QImage::Format_Invalid;
     cv::Mat mat_adjustCn;
     if (mat.channels() == 1) {
         format = formatHint;

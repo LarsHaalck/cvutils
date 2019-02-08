@@ -1,0 +1,5 @@
+add_subdirectory(libcxxopts)
+add_subdirectory(libio)
+add_subdirectory(libqimgcv)
+add_subdirectory(libtqdm)
+add_subdirectory(libzoom)

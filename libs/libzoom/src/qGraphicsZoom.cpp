@@ -1,14 +1,10 @@
-#include "qGraphicsZoom.h"
+#include "zoom/qGraphicsZoom.h"
 
 #include <QMouseEvent>
 #include <QApplication>
 #include <QScrollBar>
 #include <qmath.h>
 
-namespace cvutils
-{
-namespace misc
-{
 Graphics_view_zoom::Graphics_view_zoom(QGraphicsView* view)
   : QObject(view), _view(view)
 {
@@ -58,7 +54,4 @@ bool Graphics_view_zoom::eventFilter(QObject *object, QEvent *event) {
   }
   Q_UNUSED(object)
   return false;
-}
-
-}
 }

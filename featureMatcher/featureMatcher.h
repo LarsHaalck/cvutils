@@ -8,29 +8,26 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "io.h"
-
-// forward declarations
-namespace cv
-{
-    class Feature2D;
-}
+#include "io/featureReader.h"
+#include "io/descriptorReader.h"
+#include "io/matchesReader.h"
+#include "io/matchesWriter.h"
 
 namespace cvutils
 {
 class FeatureMatcher
 {
 private:
-    bool mHasTxtFile;
     std::filesystem::path mImgFolder;
     std::filesystem::path mTxtFile;
-    std::filesystem::path mFtFolder;
+    std::filesystem::path mFtDir;
     int mMatcher;
     int mWindow;
+    int mCacheSize;
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
-        int matcher, int window);
+        int matcher, int window, int cacheSize);
     void run();
 
 private:
@@ -40,22 +37,13 @@ private:
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
 
-    //std::pair<size_t, std::vector<bool>> getPairMatMask(
-    //    const std::vector<std::vector<cv::DMatch>>& matches);
-
-    //void write(const cv::Mat& pairMat,
-    //    const std::vector<std::vector<cv::DMatch>>& matches, detail::MatchType type);
-
-
-    void getPutativeMatches(const std::vector<std::string>& imgList);
-    void getGeomMatches(const std::vector<std::string>& imgList);
+    void getPutativeMatches();
+    void getGeomMatches();
 
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
     std::vector<uchar> getInlierMaskHomo(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
-
-
 };
 }
 

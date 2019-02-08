@@ -32,10 +32,6 @@
 #include <QObject>
 #include <QGraphicsView>
 
-namespace cvutils
-{
-namespace misc
-{
 class Graphics_view_zoom : public QObject {
 Q_OBJECT
 public:
@@ -55,5 +51,3 @@ signals:
         void zoomed();
 };
 
-}
-}

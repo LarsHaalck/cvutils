@@ -3,44 +3,22 @@
 #include <fstream>
 #include <iostream>
 
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
 
-#include "io.h"
-#include "tqdm.h"
-
+#include "tqdm/tqdm.h"
 
 namespace cvutils
 {
-FeatureDetector::FeatureDetector(const std::string& inFolder,
-    const std::string& outFolder, const std::string& txtFile,
+FeatureDetector::FeatureDetector(const std::string& imgDir,
+    const std::string& txtFile, const std::string& ftDir,
     const std::string& ftFile, float scale)
-    : mInFolder(inFolder)
-    , mOutFolder(outFolder)
-    , mHasTxtFile(!txtFile.empty())
-    , mTxtFile(txtFile)
+    : mReader(imgDir, txtFile, scale, cv::ImreadModes::IMREAD_GRAYSCALE, 0)
+    , mFtWriter(ftDir)
+    , mDescWriter(ftDir)
     , mFtFile(ftFile)
-    , mScale(scale)
 {
-
-    if (!std::filesystem::exists(mInFolder)
-        || !std::filesystem::is_directory(mInFolder))
-    {
-        throw std::filesystem::filesystem_error("Input folder does not exist",
-            mInFolder, std::make_error_code(std::errc::no_such_file_or_directory));
-    }
-
-    std::filesystem::create_directory(mOutFolder);
-
-    if (mHasTxtFile && (!std::filesystem::exists(mTxtFile)
-        || !std::filesystem::is_regular_file(mTxtFile)))
-    {
-        throw std::filesystem::filesystem_error("Txt file does not exist", mTxtFile,
-            std::make_error_code(std::errc::no_such_file_or_directory));
-    }
-
     if (!std::filesystem::exists(mFtFile)
         || !std::filesystem::is_regular_file(mFtFile))
     {
@@ -52,50 +30,23 @@ FeatureDetector::FeatureDetector(const std::string& inFolder,
 void FeatureDetector::run()
 {
     auto ftPtr = getFtPtr();
-    auto files = misc::IO::getImgFiles(mInFolder, mTxtFile);
+    //auto files = misc::IO::getImgFiles(mInFolder, mTxtFile);
+    auto numFiles = mReader.numImages();
 
     tqdm bar;
     size_t current = 0;
     #pragma omp parallel for
-    for (size_t i = 0; i < files.size(); i++)
+    for (size_t i = 0; i < numFiles; i++)
     {
-        std::string file = files[i];
-        //std::cout << "Processing file: " << file << std::endl;
-        cv::Mat img = cv::imread(file, cv::IMREAD_GRAYSCALE);
-
-        if (mScale != 1.0f)
-        {
-            cv::Mat resImg;
-            cv::resize(img, resImg, cv::Size(0, 0), mScale, mScale);
-            img = resImg;
-        }
-
+        auto img = mReader.getImage(i);
         std::vector<cv::KeyPoint> features;
-        ftPtr->detect(img, features);
-
         cv::Mat descriptors;
-        ftPtr->compute(img, features, descriptors);
-
-        std::filesystem::path imgStem(file);
-        imgStem = mOutFolder / imgStem.stem();
-        cv::FileStorage fsFt(imgStem.string() + "-feat.yml.gz",
-            cv::FileStorage::WRITE);
-        //std::cout << "writing to " << imgStem.string() + "-feat.yml" << std::endl;
-
-        if (!fsFt.isOpened())
-            std::cout << "Could not open feature file for writing" << std::endl;
-        else
-            cv::write(fsFt, "pts", features);
-
-        cv::FileStorage fsDesc(imgStem.string() + "-desc.yml.gz",
-            cv::FileStorage::WRITE);
-        if (!fsDesc.isOpened())
-            std::cout << "Could not open descriptor file for writing" << std::endl;
-        else
-            cv::write(fsDesc, "desc", descriptors);
+        ftPtr->detectAndCompute(img, cv::Mat(), features, descriptors);
+        mFtWriter.writeFeatures(mReader.getImageName(i), features);
+        mDescWriter.writeDescriptors(mReader.getImageName(i), descriptors);
 
         #pragma omp critical
-        bar.progress(current++, files.size());
+        bar.progress(current++, numFiles);
     }
 }
 

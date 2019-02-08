@@ -11,7 +11,6 @@ target_link_libraries(ftDetect
     opencv_core
     opencv_features2d
     opencv_xfeatures2d
-    opencv_highgui
     opencv_imgproc
     opencv_imgcodecs
     stdc++fs

@@ -1,9 +1,15 @@
 #ifndef CVUTILS_MAIN_WINDOW_H
 #define CVUTILS_MAIN_WINDOW_H
 
+#include <string>
+#include <memory>
+
 #include <QWidget>
 
 #include <opencv2/core.hpp>
+
+#include "io/imageReader.h"
+#include "io/featureReader.h"
 
 class QGraphicsScene;
 class QGraphicsView;
@@ -13,40 +19,34 @@ class QLabel;
 class QPushButton;
 class QString;
 
-namespace cvutils
-{
-namespace misc
-{
 class Graphics_view_zoom;
-}
-}
 
 namespace cvutils
 {
 class MainWindow : public QWidget
 {
     Q_OBJECT
-public:
-    MainWindow(QWidget* parent = 0);
-
 private:
     QGraphicsScene* mImgScene;
     QGraphicsView* mImgView;
-    misc::Graphics_view_zoom* mZoom;
+    Graphics_view_zoom* mZoom;
     QSlider* mSlider;
     QSpinBox* mSpinBox;
     QLabel* mNumFrames;
     QPushButton* mPrev;
     QPushButton* mNext;
-    std::vector<std::string> mImgFiles;
-    std::vector<std::vector<cv::KeyPoint>> mFtFiles;
-    float mScale;
     size_t mCurrImg;
+    size_t mNumImages;
+    std::unique_ptr<ImageReader> mImgReader;
+    std::unique_ptr<FeatureReader> mFtReader;
 
-    void populateScene(const QString& imgDir, const QString& txtFile,
-        const QString& ftDir);
+public:
+    MainWindow(QWidget* parent = 0);
+
+private:
+    void populateScene(const std::string& imgDir, const std::string& txtFile,
+        const std::string& ftDir, float scale);
     cv::Mat getImg(size_t idx);
-
     void updateScene();
 
 
@@ -56,8 +56,6 @@ private slots:
     void nextClicked();
     void sliderMoved(int value);
     void spinChanged(int value);
-
-
 };
 }
 

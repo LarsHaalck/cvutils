@@ -15,7 +15,10 @@
 #include "mainwindow.h"
 #include "mainframe.h"
 
-#include "io.h"
+#include "io/imageReader.h"
+#include "io/matchesReader.h"
+#include "io/featureReader.h"
+#include "io/matchesWriter.h"
 
 #include <iostream>
 
@@ -81,15 +84,15 @@ void MainWindow::open()
     items << "Putative" << "Geometric" << "Putative filtered" << "Geometric filtered";
     QString item = QInputDialog::getItem(this, tr("Select match type"), tr("type"),
         items, 0, false, &ok);
-    detail::MatchType type;
+    MatchType type(MatchType::Putative);
     if (item == items[0])
-        type = detail::MatchType::Putative;
+        type = MatchType::Putative;
     else if (item == items[1])
-        type = detail::MatchType::Geometric;
+        type = MatchType::Geometric;
     else if (item == items[2])
-        type = detail::MatchType::PutativeFiltered;
+        type = MatchType::PutativeFiltered;
     else if (item == items[3])
-        type = detail::MatchType::GeometricFiltered;
+        type = MatchType::GeometricFiltered;
 
     populateScene(imgDir.toStdString(), txtFile.toStdString(), ftDir.toStdString(),
         scale, type);
@@ -99,38 +102,70 @@ void MainWindow::open()
 
 void MainWindow::save()
 {
-    if (doc.type == detail::MatchType::Putative
-            || doc.type == detail::MatchType::PutativeFiltered)
+    if (doc.type == MatchType::Putative
+            || doc.type == MatchType::PutativeFiltered)
     {
-        misc::writeMatches(doc.ftDir, doc.pairMat, doc.matches,
-            detail::MatchType::PutativeFiltered);
+        MatchesWriter writer(doc.ftDir, MatchType::PutativeFiltered);
+        std::vector<size_t> matchSizes(doc.pairMat.rows);
+
+        for(int k = 0; k < doc.pairMat.rows; k++)
+        {
+            int idI = doc.pairMat.at<int>(k, 0);
+            int idJ = doc.pairMat.at<int>(k, 1);
+            writer.writeMatches(idI, idJ, doc.matches[k]);
+            matchSizes[k] = doc.matches[k].size();
+        }
+        writer.writePairMat(doc.pairMat, matchSizes);
     }
     else
     {
-        misc::writeMatches(doc.ftDir, doc.pairMat, doc.matches,
-            detail::MatchType::GeometricFiltered);
+        MatchesWriter writer(doc.ftDir, MatchType::GeometricFiltered);
+        std::vector<size_t> matchSizes(doc.pairMat.rows);
+
+        for(int k = 0; k < doc.pairMat.rows; k++)
+        {
+            int idI = doc.pairMat.at<int>(k, 0);
+            int idJ = doc.pairMat.at<int>(k, 1);
+            writer.writeMatches(idI, idJ, doc.matches[k]);
+            matchSizes[k] = doc.matches[k].size();
+        }
+        writer.writePairMat(doc.pairMat, matchSizes);
     }
 }
 
 
 void MainWindow::populateScene(const std::string& imgDir, const std::string& txtFile,
-    const std::string& ftDir, float scale, detail::MatchType type)
+    const std::string& ftDir, float scale, MatchType type)
 {
     scene = new QGraphicsScene(this);
 
-    doc.imgFiles = misc::getImgFiles(imgDir, txtFile);
-    doc.keyPoints = misc::getFtVecs(doc.imgFiles, ftDir);
-    auto matchPair = misc::getMatches(ftDir, type);
-    doc.pairMat = matchPair.first;
-    doc.matches = matchPair.second;
+    ImageReader imgReader(imgDir, txtFile);
+    FeatureReader ftReader(imgDir, txtFile, ftDir);
+    MatchesReader matchReader(ftDir, type);
+
+    doc.imgFiles.clear();
+    doc.keyPoints.clear();
+    for (size_t i = 0; i < imgReader.numImages(); i++)
+    {
+        doc.imgFiles.push_back(imgReader.getImagePath(i));
+        doc.keyPoints.push_back(ftReader.getFeatures(i));
+    }
+
+    doc.pairMat = matchReader.getPairMat();
     doc.scale = scale;
     doc.ftDir = ftDir;
     doc.type = type;
 
+    doc.matches.clear();
     for (int k = 0; k < doc.pairMat.rows; k++)
     {
         size_t i = doc.pairMat.at<int>(k, 0);
         size_t j = doc.pairMat.at<int>(k, 1);
+        doc.matches.push_back(matchReader.getMatches(i, j));
+
+        // only for vis purposes
+        if (doc.matches[k].empty())
+            continue;
 
         const QColor color(0, 0, 255, 127);
         QGraphicsItem* item = new PairGraphicsItem(color, i , j, doc.matches[k].size());

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "cxxopts.hpp"
+#include "cxxopts/cxxopts.hpp"
 #include "featureDetector.h"
 
 
@@ -30,13 +30,13 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if (result.count("txtFile") != 1)
+    if (txtFile.empty())
     {
         std::cout << "Omitted txt file. All Images in image directory will be used"
             << std::endl;
     }
 
-    cvutils::FeatureDetector ftDetect(inFolder, outFolder, txtFile, ftFile, scale);
+    cvutils::FeatureDetector ftDetect(inFolder, txtFile, outFolder, ftFile, scale);
     ftDetect.run();
 
 

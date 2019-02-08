@@ -14,7 +14,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "io.h"
+#include "io/matchType.h"
 
 
 // Basic storage of data related to a scene
@@ -26,8 +26,8 @@ struct Document
     std::vector<std::vector<cv::DMatch>> matches;
     float scale;
     std::filesystem::path ftDir;
-    cvutils::detail::MatchType type;
+    cvutils::MatchType type;
 
-    int getMatchRow(size_t i, size_t j);
-    void eraseMatchRow(size_t k);
+    int getMatchRow(int i, int j);
+    void eraseMatchRow(int k);
 };
