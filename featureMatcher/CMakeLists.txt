@@ -1,11 +1,13 @@
+set(targetName ftMatch)
 set(ftMatchSources
     main.cpp
     featureMatcher.cpp
 )
 
-add_executable(ftMatch ${ftMatchSources})
-target_include_directories(ftMatch PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ftMatch
+add_executable(${targetName} ${ftMatchSources})
+target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${targetName}
+    PRIVATE
     cxxopts
     opencv_core
     opencv_features2d
@@ -16,6 +18,11 @@ target_link_libraries(ftMatch
     opencv_calib3d
     stdc++fs
     io
+    progress
 )
 
-install(TARGETS ftMatch DESTINATION bin)
+
+if(OpenMP_FOUND)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+install(TARGETS ${targetName} DESTINATION bin)
