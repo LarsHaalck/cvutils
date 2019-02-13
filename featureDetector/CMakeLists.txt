@@ -1,11 +1,13 @@
+set(targetName ftDetect)
+
 set(ftDetectSources
     main.cpp
     featureDetector.cpp
 )
 
-add_executable(ftDetect ${ftDetectSources})
-target_include_directories(ftDetect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ftDetect
+add_executable(${targetName} ${ftDetectSources})
+target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${targetName}
     cxxopts
     progress
     opencv_core
@@ -18,6 +20,6 @@ target_link_libraries(ftDetect
 )
 
 if(OpenMP_FOUND)
-    target_link_libraries(ftDetect OpenMP::OpenMP_CXX)
+    target_link_libraries(${targetName} OpenMP::OpenMP_CXX)
 endif()
-install(TARGETS ftDetect DESTINATION bin)
+install(TARGETS ${targetName} DESTINATION bin)

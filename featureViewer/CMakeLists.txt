@@ -1,3 +1,5 @@
+set(targetName ftView)
+
 set(ftViewSources
     main.cpp
     mainWindow.cpp
@@ -7,10 +9,10 @@ set(ftViewHeaders
     mainWindow.h
 )
 
-add_executable(ftView ${ftViewSources} ${ftViewHeaders})
-set_target_properties(ftView PROPERTIES AUTOMOC ON)
-target_include_directories(ftView PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ftView
+add_executable(${targetName} ${ftViewSources} ${ftViewHeaders})
+set_target_properties(${targetName} PROPERTIES AUTOMOC ON)
+target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${targetName}
     opencv_core
     opencv_features2d
     opencv_xfeatures2d
@@ -24,5 +26,5 @@ target_link_libraries(ftView
     qZoom
 )
 
-install(TARGETS ftView DESTINATION bin)
+install(TARGETS ${targetName} DESTINATION bin)
 

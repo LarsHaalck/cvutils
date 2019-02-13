@@ -1,6 +1,5 @@
 #include "io/featureWriter.h"
 
-#include <iostream>
 #include <opencv2/features2d.hpp>
 
 #include "io/config.h"

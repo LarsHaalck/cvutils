@@ -16,6 +16,7 @@ if (${FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
+
 find_package(OpenCV REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(OpenMP QUIET)

@@ -23,8 +23,8 @@ private:
     std::filesystem::path mFtFile;
 
 public:
-    FeatureDetector(const std::string& inFolder, const std::string& outFolder,
-        const std::string& txtFile, const std::string& ftFile, float scale);
+    FeatureDetector(const std::string& imgDir, const std::string& txtFile,
+            const std::string& ftDir, const std::string& ftFile, float scale);
     void run();
 private:
     cv::Ptr<cv::Feature2D> getFtPtr();

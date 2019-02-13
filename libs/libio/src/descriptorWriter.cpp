@@ -1,7 +1,5 @@
 #include "io/descriptorWriter.h"
 
-#include <iostream>
-
 #include <opencv2/features2d.hpp>
 
 #include "io/config.h"

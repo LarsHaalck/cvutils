@@ -111,13 +111,13 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getSURFPtr(const cv::FileStorage& fs)
 
     bool extB = false;
     bool upB = false;
-    if (ext)
+    if (ext > 0)
         extB = true;
-    if (up)
+    if (up > 0)
         upB = true;
 
     return cv::xfeatures2d::SURF::create(hess, nOct, nOctL, extB, upB);
 
     
 }
-}
+} // namespace cvutils

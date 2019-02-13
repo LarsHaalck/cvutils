@@ -21,7 +21,6 @@ target_link_libraries(${targetName}
     progress
 )
 
-
 if(OpenMP_FOUND)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()

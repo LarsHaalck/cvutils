@@ -1,7 +1,6 @@
 #ifndef CVUTILS_IMAGE_FETCHER_H
 #define CVUTILS_IMAGE_FETCHER_H
 
-#include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <string>

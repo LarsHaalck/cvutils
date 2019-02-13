@@ -76,8 +76,11 @@ void FeatureMatcher::getPutativeMatches()
 
 void FeatureMatcher::getGeomMatches()
 {
-    MatchesReader matchesReader(mFtDir, MatchType::Putative, -1);
+    std::cout << "\n matches verification..." << std::endl;
+    MatchesReader matchesReader(mFtDir, MatchType::Putative, mCacheSize);
+    std::cout << "\n writer verification..." << std::endl;
     MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
+    std::cout << "\n feat reader verification..." << std::endl;
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
 
     std::cout << "\nGeometric verification..." << std::endl;
