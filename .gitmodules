@@ -1,0 +1,9 @@
+[submodule "libs/external/cxxopts"]
+	path = libs/external/cxxopts
+	url = https://github.com/jarro2783/cxxopts
+[submodule "libs/external/cereal"]
+	path = libs/external/cereal
+	url = https://github.com/LarsHaalck/cereal
+[submodule "libs/external/cpptqdm"]
+	path = libs/external/cpptqdm
+	url = https://github.com/aminnj/cpptqdm

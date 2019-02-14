@@ -9,7 +9,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 
-#include "tqdm/tqdm.h"
+#include "tqdm.h"
 
 namespace cvutils
 {

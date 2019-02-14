@@ -7,7 +7,7 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d.hpp>
 
-#include "tqdm/tqdm.h"
+#include "tqdm.h"
 
 namespace cvutils
 {

@@ -1,4 +1,5 @@
-set(ftMatchViewerSources
+set(targetName ftMatchViewer)
+set(Sources
     main.cpp
     mainwindow.cpp
     mainframe.cpp
@@ -7,7 +8,7 @@ set(ftMatchViewerSources
     document.cpp
 )
 
-set(ftMatchViewerHeaders
+set(Headers
     main.cpp
     mainwindow.h
     mainframe.h
@@ -16,10 +17,10 @@ set(ftMatchViewerHeaders
     document.hpp
 )
 
-add_executable(ftMatchViewer ${ftMatchViewerSources} ${ftMatchViewerHeaders})
-set_target_properties(ftMatchViewer PROPERTIES AUTOMOC ON)
-target_include_directories(ftMatchViewer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ftMatchViewer
+add_executable(${targetName} ${Sources} ${Headers})
+set_target_properties(${targetName} PROPERTIES AUTOMOC ON)
+target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${targetName}
     opencv_core
     opencv_features2d
     opencv_xfeatures2d
@@ -35,10 +36,10 @@ target_link_libraries(ftMatchViewer
 
 find_package(Qt5OpenGL)
 if (Qt5OpenGL_FOUND)
-    target_link_libraries(ftMatchViewer Qt5::OpenGL)
+    target_link_libraries(${targetName} Qt5::OpenGL)
 else()
-    target_compile_definitions(ftMatchViewer PUBLIC -DQT_NO_OPENGL)
+    target_compile_definitions(${targetName} PUBLIC -DQT_NO_OPENGL)
 endif()
 
-install(TARGETS ftMatchViewer DESTINATION bin)
+install(TARGETS ${targetName} DESTINATION bin)
 

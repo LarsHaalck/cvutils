@@ -1,15 +1,15 @@
 set(targetName ftDetect)
 
-set(ftDetectSources
+set(Sources
     main.cpp
     featureDetector.cpp
 )
 
-add_executable(${targetName} ${ftDetectSources})
+add_executable(${targetName} ${Sources})
 target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${targetName}
     cxxopts
-    progress
+    tqdm
     opencv_core
     opencv_features2d
     opencv_xfeatures2d

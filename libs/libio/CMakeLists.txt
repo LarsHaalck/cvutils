@@ -37,37 +37,37 @@ install(TARGETS ${targetName}
     DESTINATION ${targetName}
 )
 
-set(cacheHeaders
-    include/cache/abstractCache.h
-    include/cache/cacheFactory.h
-    include/cache/hash.h
-    include/cache/lruCache.h
-    include/cache/nonCache.h
-    include/cache/simpleCache.h
-)
+# set(cacheHeaders
+#     include/cache/abstractCache.h
+#     include/cache/cacheFactory.h
+#     include/cache/hash.h
+#     include/cache/lruCache.h
+#     include/cache/nonCache.h
+#     include/cache/simpleCache.h
+# )
 
-set(fetchHeaders
-    include/fetch/abstractFetcher.h
-    include/fetch/descriptorFetcher.h
-    include/fetch/featureFetcher.h
-    include/fetch/imageFetcher.h
-    include/fetch/matchesFetcher.h
-)
+# set(fetchHeaders
+#     include/fetch/abstractFetcher.h
+#     include/fetch/descriptorFetcher.h
+#     include/fetch/featureFetcher.h
+#     include/fetch/imageFetcher.h
+#     include/fetch/matchesFetcher.h
+# )
 
-set(ioHeaders
-    include/io/config.h
-    include/io/descriptorReader.h
-    include/io/descriptorWriter.h
-    include/io/featureReader.h
-    include/io/featureWriter.h
-    include/io/imageReader.h
-    include/io/matchType.h
-    include/io/matchesReader.h
-    include/io/matchesWriter.h
-)
+# set(ioHeaders
+#     include/io/config.h
+#     include/io/descriptorReader.h
+#     include/io/descriptorWriter.h
+#     include/io/featureReader.h
+#     include/io/featureWriter.h
+#     include/io/imageReader.h
+#     include/io/matchType.h
+#     include/io/matchesReader.h
+#     include/io/matchesWriter.h
+# )
 
-install(FILES ${cacheHeaders} DESTINATION include/cache)
-install(FILES ${fetchHeaders} DESTINATION include/fetch)
-install(FILES ${ioHeaders} DESTINATION include/io)
+install(DIRECTORY include/cache  DESTINATION include/cache)
+install(DIRECTORY include/fetch DESTINATION include/fetch)
+install(DIRECTORY include/io DESTINATION include/io)
 
 

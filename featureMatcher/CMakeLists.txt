@@ -1,14 +1,15 @@
 set(targetName ftMatch)
-set(ftMatchSources
+set(Sources
     main.cpp
     featureMatcher.cpp
 )
 
-add_executable(${targetName} ${ftMatchSources})
+add_executable(${targetName} ${Sources})
 target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${targetName}
     PRIVATE
     cxxopts
+    tqdm
     opencv_core
     opencv_features2d
     opencv_xfeatures2d
@@ -18,7 +19,6 @@ target_link_libraries(${targetName}
     opencv_calib3d
     stdc++fs
     io
-    progress
 )
 
 if(OpenMP_FOUND)

@@ -1,15 +1,15 @@
 set(targetName ftView)
 
-set(ftViewSources
+set(Sources
     main.cpp
     mainWindow.cpp
 )
 
-set(ftViewHeaders
+set(Headers
     mainWindow.h
 )
 
-add_executable(${targetName} ${ftViewSources} ${ftViewHeaders})
+add_executable(${targetName} ${Sources} ${Headers})
 set_target_properties(${targetName} PROPERTIES AUTOMOC ON)
 target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${targetName}
