@@ -10,7 +10,6 @@
 #include "cache/abstractCache.h"
 #include "fetch/featureFetcher.h"
 
-
 namespace cvutils
 {
 class FeatureReader

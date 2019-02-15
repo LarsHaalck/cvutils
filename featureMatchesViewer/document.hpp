@@ -10,11 +10,13 @@
 
 #include <filesystem>
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
 #include "io/matchType.h"
+#include "io/hash.h"
 
 
 // Basic storage of data related to a scene
@@ -23,11 +25,8 @@ struct Document
     std::vector<std::string> imgFiles;
     std::vector<std::vector<cv::KeyPoint>> keyPoints;
     cv::Mat pairMat;
-    std::vector<std::vector<cv::DMatch>> matches;
+    std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>> pairWiseMatches;
     float scale;
     std::filesystem::path ftDir;
     cvutils::MatchType type;
-
-    int getMatchRow(int i, int j);
-    void eraseMatchRow(int k);
 };

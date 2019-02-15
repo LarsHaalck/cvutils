@@ -1,7 +1,13 @@
 #ifndef CVUTILS_MATCHES_READER_H
 #define CVUTILS_MATCHES_READER_H
 
+#define CEREAL_THREAD_SAFE 1
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/vector.hpp>
+
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <vector>
 
@@ -10,22 +16,35 @@
 #include "cache/abstractCache.h"
 #include "fetch/matchesFetcher.h"
 
+namespace cereal
+{
+template<class Archive>
+void load(Archive& archive, cv::DMatch& match)
+{
+    archive(match.queryIdx, match.trainIdx, match.distance);
+}
+
+template<class Archive, typename T, typename S>
+void load(Archive& archive, std::pair<T, S>& pair)
+{
+    archive(pair.first, pair.second);
+}
+} // namespace cereal
+
 namespace cvutils
 {
 class MatchesReader
 {
 private:
-    std::shared_ptr<detail::MatchesFetcher> mFetcher;
-    size_t mSize;
-    std::unique_ptr<detail::AbstractCache<std::pair<size_t, size_t>,
-        std::vector<cv::DMatch>>> mCache;
+    std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>> mMatches;
 public:
-    MatchesReader(const std::filesystem::path& ftDir, MatchType type,
-        int cacheSize = 0);
+    MatchesReader(const std::filesystem::path& ftDir, MatchType type);
 
     size_t numMatches() const;
     std::vector<cv::DMatch> getMatches(size_t idI, size_t idJ);
-    cv::Mat getPairMat() const;
+
+    std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>>
+    getMatches();
 };
 } // namespace cvutils
 

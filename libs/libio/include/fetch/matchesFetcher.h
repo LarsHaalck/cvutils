@@ -43,8 +43,6 @@ public:
         cv::read(mFile[detail::pairMatKey], mPairMat);
     }
 
-    cv::Mat getPairMat() const { return mPairMat; }
-
     size_t size() const override { return mPairMat.rows; }
 
     std::vector<cv::DMatch> get(const std::pair<size_t, size_t>& idPair) const override

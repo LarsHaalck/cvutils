@@ -1,6 +1,6 @@
 #include "io/featureWriter.h"
 
-#include <opencv2/features2d.hpp>
+#include <fstream>
 
 #include "io/config.h"
 
@@ -13,18 +13,23 @@ FeatureWriter::FeatureWriter(const std::filesystem::path& ftDir)
 }
 
 void FeatureWriter::writeFeatures(const std::string& imgName,
-    const std::vector<cv::KeyPoint>& features)
+        const std::vector<cv::KeyPoint>& features)
 {
     std::filesystem::path imgStem(imgName);
     imgStem = mFtDir / imgStem.stem();
     std::filesystem::path fileName(imgStem.string() + detail::ftEnding);
-    cv::FileStorage fsFt(fileName, cv::FileStorage::WRITE);
 
-    if (!fsFt.isOpened())
+    std::ofstream stream (fileName.string(), std::ios::out | std::ios::binary);
+    if (!stream.is_open())
     {
         throw std::filesystem::filesystem_error("Error opening feature file",
-            fileName, std::make_error_code(std::errc::io_error));
+                fileName, std::make_error_code(std::errc::io_error));
     }
-    cv::write(fsFt, detail::ftKey, features);
+
+    {
+        cereal::PortableBinaryOutputArchive archive(stream);
+        archive(features);
+        stream.close();
+    }
 }
 } // namespace cvutils

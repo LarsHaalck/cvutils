@@ -26,6 +26,8 @@ target_link_libraries(${targetName}
     opencv_features2d
     opencv_xfeatures2d
     stdc++fs
+    PUBLIC
+    cereal
 )
 
 if(OpenMP_FOUND)

@@ -42,10 +42,6 @@ void FeatureMatcher::getPutativeMatches()
     auto pairList = getPairList(descReader.numImages());
     auto descMatcher = getMatcher();
 
-    // NOTE: opencv doesnt support CV_32U
-    cv::Mat pairMat = cv::Mat::zeros(pairList.size(), 2, CV_32S);
-    std::vector<size_t> matchSizes(pairList.size());
-
     std::cout << "\nPutative matching..." << std::endl;
     tqdm bar;
     size_t count = 0;
@@ -61,40 +57,39 @@ void FeatureMatcher::getPutativeMatches()
         std::vector<cv::DMatch> currMatches;
         descMatcher->match(descI, descJ, currMatches);
 
-        pairMat.at<int>(k, 0) = idI;
-        pairMat.at<int>(k, 1) = idJ;
-        matchSizes[k] = currMatches.size();
-
         #pragma omp critical
         {
             matchesWriter.writeMatches(idI, idJ, currMatches);
             bar.progress(count++, pairList.size());
         }
     }
-    matchesWriter.writePairMat(pairMat, matchSizes);
 }
 
 void FeatureMatcher::getGeomMatches()
 {
-    std::cout << "\n matches verification..." << std::endl;
-    MatchesReader matchesReader(mFtDir, MatchType::Putative, mCacheSize);
-    std::cout << "\n writer verification..." << std::endl;
+    MatchesReader matchesReader(mFtDir, MatchType::Putative);
     MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
-    std::cout << "\n feat reader verification..." << std::endl;
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
 
     std::cout << "\nGeometric verification..." << std::endl;
     tqdm bar;
     size_t count = 0;
-    auto pairMat = matchesReader.getPairMat();
-    std::vector<size_t> matchSizes(pairMat.rows);
+
+    auto pairwiseMatches = matchesReader.getMatches();
+    std::vector<std::pair<size_t, size_t>> keys;
+    keys.reserve(pairwiseMatches.size());
+
+    for(const auto& matches : pairwiseMatches)
+        keys.push_back(matches.first);
+
     // for every matching image pair
     #pragma omp parallel for
-    for (int k = 0; k < pairMat.rows; k++)
+    for (size_t i = 0; i < keys.size(); i++)
     {
-        auto idI = pairMat.at<int>(k, 0);
-        auto idJ = pairMat.at<int>(k, 1);
-        auto matches = matchesReader.getMatches(idI, idJ);
+        auto pair = keys[i];
+        auto idI = pair.first;
+        auto idJ = pair.second;
+        auto matches = pairwiseMatches[pair];
         auto featsI = featReader.getFeatures(idI);
         auto featsJ = featReader.getFeatures(idJ);
 
@@ -114,16 +109,13 @@ void FeatureMatcher::getGeomMatches()
         }
 
         matches = filteredMatches;
-        matchSizes[k] = filteredMatches.size();
 
         #pragma omp critical
         {
             matchesWriter.writeMatches(idI, idJ, matches);
-            bar.progress(count++, pairMat.rows);
+            bar.progress(count++, matches.size());
         }
-
     }
-    matchesWriter.writePairMat(pairMat, matchSizes);
 }
 
 std::vector<uchar> FeatureMatcher::getInlierMask(const std::vector<cv::Point2f>& src,

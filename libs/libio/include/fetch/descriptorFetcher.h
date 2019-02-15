@@ -1,7 +1,11 @@
 #ifndef CVUTILS_DESCRIPTOR_FETCHER_H
 #define CVUTILS_DESCRIPTOR_FETCHER_H
 
+#define CEREAL_THREAD_SAFE 1
+#include <cereal/archives/portable_binary.hpp>
+
 #include <filesystem>
+#include <fstream>
 #include <vector>
 
 #include <opencv2/core.hpp>
@@ -9,6 +13,31 @@
 #include "fetch/abstractFetcher.h"
 #include "fetch/imageFetcher.h"
 #include "io/config.h"
+
+namespace cereal
+{
+template<class Archive>
+void load(Archive& archive, cv::Mat& mat)
+{
+    int rows, cols, type;
+    bool continuous;
+    archive(rows, cols, type, continuous);
+
+    if (continuous)
+    {
+        mat.create(rows, cols, type);
+        int dataSize = rows * cols * static_cast<int>(mat.elemSize());
+        archive(cereal::binary_data(mat.ptr(), dataSize));
+    }
+    else
+    {
+        mat.create(rows, cols, type);
+        int rowSize = cols * static_cast<int>(mat.elemSize());
+        for (int i = 0; i < rows; i++)
+            archive(cereal::binary_data(mat.ptr(i), rowSize));
+    }
+}
+}
 
 namespace cvutils
 {
@@ -41,19 +70,21 @@ public:
         imgStem = mFtDir / imgStem.stem();
         std::filesystem::path fileName(imgStem.string() + detail::descEnding);
 
-        cv::FileStorage fsFt(fileName.string(),
-            cv::FileStorage::READ);
-
-        if (!fsFt.isOpened())
+        std::ifstream stream (fileName.string(), std::ios::in | std::ios::binary);
+        if (!stream.is_open())
         {
-            throw std::filesystem::filesystem_error("Error opening matches file",
-                fileName, std::make_error_code(std::errc::io_error));
+            throw std::filesystem::filesystem_error("Error opening descriptor file",
+                    fileName, std::make_error_code(std::errc::io_error));
         }
 
-        cv::Mat currDesc;
-        cv::read(fsFt[detail::descKey], currDesc);
+        cv::Mat descriptors;
+        {
+            cereal::PortableBinaryInputArchive archive(stream);
+            archive(descriptors);
+            stream.close();
+        }
 
-        return currDesc;
+        return descriptors;
     }
 
 };

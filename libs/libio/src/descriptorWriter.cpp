@@ -1,6 +1,6 @@
 #include "io/descriptorWriter.h"
 
-#include <opencv2/features2d.hpp>
+#include <fstream>
 
 #include "io/config.h"
 
@@ -19,15 +19,20 @@ void DescriptorWriter::writeDescriptors(const std::string& imgName,
     std::filesystem::path imgStem(imgName);
     imgStem = mFtDir / imgStem.stem();
     std::filesystem::path fileName(imgStem.string() + detail::descEnding);
-    cv::FileStorage fsDesc(fileName, cv::FileStorage::WRITE);
-    if (!fsDesc.isOpened())
+
+
+    std::ofstream stream (fileName.string(), std::ios::out | std::ios::binary);
+    if (!stream.is_open())
     {
         throw std::filesystem::filesystem_error("Error opening descriptor file",
-            fileName, std::make_error_code(std::errc::io_error));
+                fileName, std::make_error_code(std::errc::io_error));
     }
 
-    cv::write(fsDesc, detail::descKey, descriptors);
-
+    {
+        cereal::PortableBinaryOutputArchive archive(stream);
+        archive(descriptors);
+        stream.close();
+    }
 }
 
 } // namespace cvutils

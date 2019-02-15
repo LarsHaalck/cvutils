@@ -106,31 +106,14 @@ void MainWindow::save()
             || doc.type == MatchType::PutativeFiltered)
     {
         MatchesWriter writer(doc.ftDir, MatchType::PutativeFiltered);
-        std::vector<size_t> matchSizes(doc.pairMat.rows);
-
-        for(int k = 0; k < doc.pairMat.rows; k++)
-        {
-            int idI = doc.pairMat.at<int>(k, 0);
-            int idJ = doc.pairMat.at<int>(k, 1);
-            writer.writeMatches(idI, idJ, doc.matches[k]);
-            matchSizes[k] = doc.matches[k].size();
-        }
-        writer.writePairMat(doc.pairMat, matchSizes);
+        writer.writePairWiseMatches(doc.pairWiseMatches);
     }
     else
     {
         MatchesWriter writer(doc.ftDir, MatchType::GeometricFiltered);
-        std::vector<size_t> matchSizes(doc.pairMat.rows);
-
-        for(int k = 0; k < doc.pairMat.rows; k++)
-        {
-            int idI = doc.pairMat.at<int>(k, 0);
-            int idJ = doc.pairMat.at<int>(k, 1);
-            writer.writeMatches(idI, idJ, doc.matches[k]);
-            matchSizes[k] = doc.matches[k].size();
-        }
-        writer.writePairMat(doc.pairMat, matchSizes);
+        writer.writePairWiseMatches(doc.pairWiseMatches);
     }
+    
 }
 
 
@@ -151,28 +134,26 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
         doc.keyPoints.push_back(ftReader.getFeatures(i));
     }
 
-    doc.pairMat = matchReader.getPairMat();
+    doc.pairWiseMatches = matchReader.getMatches();
     doc.scale = scale;
     doc.ftDir = ftDir;
     doc.type = type;
 
-    doc.matches.clear();
-    for (int k = 0; k < doc.pairMat.rows; k++)
+    for (const auto& matches : doc.pairWiseMatches)
     {
-        size_t i = doc.pairMat.at<int>(k, 0);
-        size_t j = doc.pairMat.at<int>(k, 1);
-        doc.matches.push_back(matchReader.getMatches(i, j));
+        size_t idI = matches.first.first;
+        size_t idJ = matches.first.second;
 
         // only for vis purposes
-        if (doc.matches[k].empty())
+        if (matches.second.empty())
             continue;
 
         const QColor color(0, 0, 255, 127);
-        QGraphicsItem* item = new PairGraphicsItem(color, i , j, doc.matches[k].size());
+        QGraphicsItem* item = new PairGraphicsItem(color, idI , idJ, matches.second.size());
 
         item->setPos(QPointF(
-                    i * item->boundingRect().width() * 1.1,
-                    j * item->boundingRect().height() * 1.1));
+            idI * item->boundingRect().width() * 1.1,
+            idJ * item->boundingRect().height() * 1.1));
         scene->addItem(item);
     }
 }

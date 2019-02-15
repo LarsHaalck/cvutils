@@ -1,7 +1,7 @@
 #ifndef CVUTILS_ABSTRACT_CACHE_H
 #define CVUTILS_ABSTRACT_CACHE_H
 
-#include "cache/hash.h"
+#include "io/hash.h"
 
 namespace cvutils
 {

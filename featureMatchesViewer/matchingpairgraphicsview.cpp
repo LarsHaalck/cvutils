@@ -63,9 +63,9 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
             PairGraphicsItem* pair_item = dynamic_cast<PairGraphicsItem*>(item);
             if (pair_item)
             {
-                unsigned int I = pair_item->get_x();
-                unsigned int J = pair_item->get_y();
-                doc.eraseMatchRow(doc.getMatchRow(I,J));
+                unsigned int idI = pair_item->get_x();
+                unsigned int idJ = pair_item->get_y();
+                doc.pairWiseMatches[std::make_pair(idI, idJ)].clear();
                 delete pair_item;
             }
         }
@@ -79,16 +79,16 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
         if (pair_item)
         {
             // Launch here a viewer of the pair matches
-            const unsigned int I = pair_item->get_x();
-            const unsigned int J = pair_item->get_y();
+            unsigned int idI = pair_item->get_x();
+            unsigned int idJ = pair_item->get_y();
+            auto pair = std::make_pair(idI, idJ);
 
-            int k = doc.getMatchRow(I, J);
 
-            if (!doc.matches[k].empty())
+            if (!doc.pairWiseMatches[pair].empty())
             {
 
-                cv::Mat imgI = cv::imread(doc.imgFiles[I], cv::IMREAD_UNCHANGED);
-                cv::Mat imgJ = cv::imread(doc.imgFiles[J], cv::IMREAD_UNCHANGED);
+                cv::Mat imgI = cv::imread(doc.imgFiles[idI], cv::IMREAD_UNCHANGED);
+                cv::Mat imgJ = cv::imread(doc.imgFiles[idJ], cv::IMREAD_UNCHANGED);
                 if (doc.scale != 1)
                 {
                     cv::Mat resImgI, resImgJ;
@@ -99,12 +99,12 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
                 }
 
                 cv::Mat matchesImg;
-                cv::drawMatches(imgI, doc.keyPoints[I], imgJ, doc.keyPoints[J],
-                    doc.matches[k], matchesImg);
+                cv::drawMatches(imgI, doc.keyPoints[idI], imgJ, doc.keyPoints[idJ],
+                    doc.pairWiseMatches[pair], matchesImg);
 
                 std::stringstream title;
-                title << doc.imgFiles[I] << " " << doc.imgFiles[J]
-                    << " #Matches: " << doc.matches[k].size();
+                title << doc.imgFiles[idI] << " " << doc.imgFiles[idJ]
+                    << " #Matches: " << doc.pairWiseMatches[pair].size();
 
                 QGraphicsScene* scene = new QGraphicsScene(this);
                 QGraphicsView* view = new QGraphicsView(scene);
@@ -140,9 +140,9 @@ void MatchingPairGraphicsView::mouseReleaseEvent(QMouseEvent *event)
             if (!pair_item)
                 return;
 
-            unsigned int I = pair_item->get_x();
-            unsigned int J = pair_item->get_y();
-            doc.eraseMatchRow(doc.getMatchRow(I,J));
+            unsigned int idI = pair_item->get_x();
+            unsigned int idJ = pair_item->get_y();
+            doc.pairWiseMatches[std::make_pair(idI, idJ)].clear();
             delete pair_item;
         }
 
