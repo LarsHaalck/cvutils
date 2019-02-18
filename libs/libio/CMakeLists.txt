@@ -68,8 +68,8 @@ install(TARGETS ${targetName}
 #     include/io/matchesWriter.h
 # )
 
-install(DIRECTORY include/cache  DESTINATION include/cache)
-install(DIRECTORY include/fetch DESTINATION include/fetch)
-install(DIRECTORY include/io DESTINATION include/io)
+install(DIRECTORY include/cache  DESTINATION include)
+install(DIRECTORY include/fetch DESTINATION include)
+install(DIRECTORY include/io DESTINATION include)
 
 
