@@ -113,7 +113,6 @@ void MainWindow::save()
         MatchesWriter writer(doc.ftDir, MatchType::GeometricFiltered);
         writer.writePairWiseMatches(doc.pairWiseMatches);
     }
-    
 }
 
 
@@ -134,7 +133,7 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
         doc.keyPoints.push_back(ftReader.getFeatures(i));
     }
 
-    doc.pairWiseMatches = matchReader.getMatches();
+    doc.pairWiseMatches = matchReader.moveMatches();
     doc.scale = scale;
     doc.ftDir = ftDir;
     doc.type = type;

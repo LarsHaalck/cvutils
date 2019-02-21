@@ -41,10 +41,10 @@ public:
     MatchesReader(const std::filesystem::path& ftDir, MatchType type);
 
     size_t numMatches() const;
-    std::vector<cv::DMatch> getMatches(size_t idI, size_t idJ);
+    std::vector<cv::DMatch> getMatches(size_t idI, size_t idJ) const;
 
     std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>>
-    getMatches();
+    moveMatches();
 };
 } // namespace cvutils
 

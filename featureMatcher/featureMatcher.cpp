@@ -30,7 +30,7 @@ namespace cvutils
 
 void FeatureMatcher::run()
 {
-    getPutativeMatches();
+    //getPutativeMatches();
     getGeomMatches();
 }
 
@@ -45,21 +45,23 @@ void FeatureMatcher::getPutativeMatches()
     std::cout << "\nPutative matching..." << std::endl;
     tqdm bar;
     size_t count = 0;
+    // opencv uses parallelization internally
+    // openmp for loop is not necessary and in this case even performance hindering
     #pragma omp parallel for
     for (size_t k = 0; k < pairList.size(); k++)
     {
-        auto pair = pairList[k];
+        const auto pair = pairList[k];
         size_t idI = pair.first;
         size_t idJ = pair.second;
-        auto descI = descReader.getDescriptors(idI);
-        auto descJ = descReader.getDescriptors(idJ);
+        const auto descI = descReader.getDescriptors(idI);
+        const auto descJ = descReader.getDescriptors(idJ);
 
         std::vector<cv::DMatch> currMatches;
         descMatcher->match(descI, descJ, currMatches);
 
         #pragma omp critical
         {
-            matchesWriter.writeMatches(idI, idJ, currMatches);
+            matchesWriter.writeMatches(idI, idJ, std::move(currMatches));
             bar.progress(count++, pairList.size());
         }
     }
@@ -67,7 +69,7 @@ void FeatureMatcher::getPutativeMatches()
 
 void FeatureMatcher::getGeomMatches()
 {
-    MatchesReader matchesReader(mFtDir, MatchType::Putative);
+    auto pairwiseMatches = MatchesReader(mFtDir, MatchType::Putative).moveMatches();
     MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
 
@@ -75,7 +77,6 @@ void FeatureMatcher::getGeomMatches()
     tqdm bar;
     size_t count = 0;
 
-    auto pairwiseMatches = matchesReader.getMatches();
     std::vector<std::pair<size_t, size_t>> keys;
     keys.reserve(pairwiseMatches.size());
 
@@ -89,9 +90,9 @@ void FeatureMatcher::getGeomMatches()
         auto pair = keys[i];
         auto idI = pair.first;
         auto idJ = pair.second;
-        auto matches = pairwiseMatches[pair];
-        auto featsI = featReader.getFeatures(idI);
-        auto featsJ = featReader.getFeatures(idJ);
+        auto matches = std::move(pairwiseMatches[pair]);
+        const auto featsI = featReader.getFeatures(idI);
+        const auto featsJ = featReader.getFeatures(idJ);
 
         //build point matrices
         std::vector<cv::Point2f> src, dst;
@@ -108,12 +109,12 @@ void FeatureMatcher::getGeomMatches()
                filteredMatches.push_back(matches[r]);
         }
 
-        matches = filteredMatches;
+        matches = std::move(filteredMatches);
 
         #pragma omp critical
         {
-            matchesWriter.writeMatches(idI, idJ, matches);
-            bar.progress(count++, matches.size());
+            matchesWriter.writeMatches(idI, idJ, std::move(matches));
+            bar.progress(count++, keys.size());
         }
     }
 }

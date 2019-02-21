@@ -31,15 +31,15 @@ MatchesReader::MatchesReader(const std::filesystem::path& ftDir, MatchType type)
 
 size_t MatchesReader::numMatches() const { return mMatches.size(); }
 
-std::vector<cv::DMatch> MatchesReader::getMatches(size_t idI, size_t idJ)
+std::vector<cv::DMatch> MatchesReader::getMatches(size_t idI, size_t idJ) const
 {
-    return mMatches[std::make_pair(idI, idJ)];
+    return mMatches.at(std::make_pair(idI, idJ));
 }
 
 std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>>
-MatchesReader::getMatches()
+MatchesReader::moveMatches()
 {
-    return mMatches;
+    return std::move(mMatches);
 }
 
 } // namespace cvutils
