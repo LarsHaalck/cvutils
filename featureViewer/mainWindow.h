@@ -35,6 +35,7 @@ private:
     QLabel* mNumFrames;
     QPushButton* mPrev;
     QPushButton* mNext;
+    QLabel* mStatusLabel;
     size_t mCurrImg;
     size_t mNumImages;
     std::unique_ptr<ImageReader> mImgReader;
@@ -46,8 +47,9 @@ public:
 private:
     void populateScene(const std::string& imgDir, const std::string& txtFile,
         const std::string& ftDir, float scale);
-    cv::Mat getImg(size_t idx);
+    std::tuple<cv::Mat, QString, size_t> getImg(size_t idx);
     void updateScene();
+    void setStatus(QString imgName, unsigned int numFts);
 
 private slots:
     void open();

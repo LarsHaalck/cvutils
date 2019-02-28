@@ -73,9 +73,13 @@ MainWindow::MainWindow(QWidget *parent)
     boxLayout->addLayout(buttonLayout);
     box->setLayout(boxLayout);
 
+    mStatusLabel = new QLabel("Image: X, # Fts: X ", this);
+    mStatusLabel->setAlignment(Qt::AlignCenter);
+
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(bar);
     layout->addWidget(mImgView);
+    layout->addWidget(mStatusLabel);
     layout->addWidget(box);
     setLayout(layout);
 
@@ -130,31 +134,41 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
     mSlider->setMaximum(mNumImages);
     mSlider->setValue(1);
 
-    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(0))));
+    auto imgTriple = getImg(0);
+    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(std::get<0>(imgTriple))));
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
     mCurrImg = 0;
+    setStatus(std::get<1>(imgTriple), std::get<2>(imgTriple));
 
     connect(mSlider, SIGNAL(valueChanged(int)), this, SLOT(sliderMoved(int)));
     connect(mSpinBox, SIGNAL(valueChanged(int)), this, SLOT(spinChanged(int)));
 
 }
 
-cv::Mat MainWindow::getImg(size_t idx)
+void MainWindow::setStatus(QString imgName, unsigned int numFts)
+{
+    QString status = QString("Image: ") + imgName + ", ";
+    status += "# Fts: " + QVariant(numFts).toString();
+    mStatusLabel->setText(status);
+}
+std::tuple<cv::Mat, QString, size_t> MainWindow::getImg(size_t idx)
 {
     auto currImg = mImgReader->getImage(idx);
     auto currFts = mFtReader->getFeatures(idx);
+    auto currImgName = mImgReader->getImageName(idx);
 
     cv::Mat res;
     cv::drawKeypoints(currImg, currFts, res);
-    return res;
+    return std::make_tuple(res, QString::fromStdString(currImgName), currFts.size());
 }
 
 
 
 void MainWindow::updateScene()
 {
+    auto imgTriple = getImg(mCurrImg);
     mImgScene->clear();
-    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(getImg(mCurrImg))));
+    mImgScene->addPixmap(QPixmap::fromImage(QtOcv::mat2Image(std::get<0>(imgTriple))));
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
 
     mSpinBox->blockSignals(true);
@@ -164,6 +178,8 @@ void MainWindow::updateScene()
     mSlider->blockSignals(true);
     mSlider->setValue(mCurrImg + 1);
     mSlider->blockSignals(false);
+
+    setStatus(std::get<1>(imgTriple), std::get<2>(imgTriple));
 }
 
 void MainWindow::prevClicked()
