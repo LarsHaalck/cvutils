@@ -30,7 +30,7 @@ namespace cvutils
 
 void FeatureMatcher::run()
 {
-    //getPutativeMatches();
+    getPutativeMatches();
     getGeomMatches();
 }
 
