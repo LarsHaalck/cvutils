@@ -42,4 +42,15 @@ MatchesReader::moveMatches()
     return std::move(mMatches);
 }
 
+std::vector<std::pair<size_t, size_t>> MatchesReader::getMatchPairs() const
+{
+    std::vector<std::pair<size_t, size_t>> keys;
+    keys.reserve(mMatches.size());
+
+    for(const auto& matches : mMatches)
+        keys.push_back(matches.first);
+
+    return keys;
+}
+
 } // namespace cvutils

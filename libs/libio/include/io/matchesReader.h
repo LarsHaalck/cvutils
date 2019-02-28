@@ -45,6 +45,8 @@ public:
 
     std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>>
     moveMatches();
+
+    std::vector<std::pair<size_t, size_t>> getMatchPairs() const;
 };
 } // namespace cvutils
 
