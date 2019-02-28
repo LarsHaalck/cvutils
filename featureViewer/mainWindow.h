@@ -49,7 +49,6 @@ private:
     cv::Mat getImg(size_t idx);
     void updateScene();
 
-
 private slots:
     void open();
     void prevClicked();

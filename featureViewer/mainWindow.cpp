@@ -17,6 +17,7 @@
 #include <QFileDialog>
 #include <QString>
 #include <QInputDialog>
+#include <QKeyEvent>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
@@ -133,7 +134,7 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
     mImgView->fitInView(mImgScene->itemsBoundingRect(), Qt::KeepAspectRatio);
     mCurrImg = 0;
 
-    connect(mSlider, SIGNAL(sliderMoved(int)), this, SLOT(sliderMoved(int)));
+    connect(mSlider, SIGNAL(valueChanged(int)), this, SLOT(sliderMoved(int)));
     connect(mSpinBox, SIGNAL(valueChanged(int)), this, SLOT(spinChanged(int)));
 
 }
@@ -163,7 +164,6 @@ void MainWindow::updateScene()
     mSlider->blockSignals(true);
     mSlider->setValue(mCurrImg + 1);
     mSlider->blockSignals(false);
-
 }
 
 void MainWindow::prevClicked()
