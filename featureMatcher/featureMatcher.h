@@ -12,6 +12,7 @@
 #include "io/descriptorReader.h"
 #include "io/matchesReader.h"
 #include "io/matchesWriter.h"
+#include "io/geometricType.h"
 
 namespace cvutils
 {
@@ -22,12 +23,13 @@ private:
     std::filesystem::path mTxtFile;
     std::filesystem::path mFtDir;
     int mMatcher;
+    cvutils::GeometricType mGeomTypes;
     int mWindow;
     int mCacheSize;
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
-        int matcher, int window, int cacheSize);
+        int matcher, cvutils::GeometricType geomTypes, int window, int cacheSize);
     void run();
 
 private:
@@ -38,7 +40,8 @@ private:
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
 
     void getPutativeMatches();
-    void getGeomMatches();
+    void getGeomMatches(cvutils::GeometricType writeType,
+        cvutils::GeometricType readType);
 
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);

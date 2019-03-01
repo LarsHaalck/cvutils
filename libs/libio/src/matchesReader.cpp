@@ -5,16 +5,20 @@
 namespace cvutils
 {
 MatchesReader::MatchesReader(const std::filesystem::path& ftDir, MatchType type)
+    : MatchesReader(ftDir / detail::matchTypeToFileName(type))
 {
-    if (!std::filesystem::exists(ftDir)
-        || !std::filesystem::is_directory(ftDir))
+}
+
+MatchesReader::MatchesReader(const std::filesystem::path& matchFile);
+{
+    if (!std::filesystem::exists(matchFile)
+        || !std::filesystem::is_file(matchFile))
     {
-        throw std::filesystem::filesystem_error("Feature folder does not exist",
-            ftDir, std::make_error_code(std::errc::no_such_file_or_directory));
+        throw std::filesystem::filesystem_error("Match file does not exist",
+            matchFile, std::make_error_code(std::errc::no_such_file_or_directory));
     }
 
-    auto fileName = (ftDir / detail::matchTypeToFileName(type));
-    std::ifstream stream(fileName.string(), std::ios::in | std::ios::binary);
+    std::ifstream stream(matchFile.string(), std::ios::in | std::ios::binary);
 
     if (!stream.is_open())
     {

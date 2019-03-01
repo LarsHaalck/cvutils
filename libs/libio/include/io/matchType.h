@@ -6,9 +6,10 @@ namespace cvutils
 enum class MatchType
 {
     Putative,
-    PutativeFiltered,
-    Geometric,
-    GeometricFiltered
+    Isometry,
+    Similarity,
+    Affine,
+    Homography,
 };
 } // namespace cvutils
 #endif // CVUTILS_IO_MATCH_TYPE_H

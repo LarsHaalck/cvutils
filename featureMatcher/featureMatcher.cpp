@@ -14,24 +14,45 @@
 namespace cvutils
 {
     FeatureMatcher::FeatureMatcher(
-        const std::filesystem::path& imgFolder,
-        const std::filesystem::path& txtFile,
-        const std::filesystem::path& ftDir,
-        int matcher, int window, int cacheSize)
+    const std::filesystem::path& imgFolder,
+    const std::filesystem::path& txtFile,
+    const std::filesystem::path& ftDir,
+    int matcher, cvutils::GeometricType, int window, int cacheSize)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
     , mMatcher(matcher)
+    , mGeomTypes(geomTypes)
     , mWindow(window)
     , mCacheSize(cacheSize)
 {
-
+    mGeomTypes |= cvutils::GeometricType::Putative;
 }
 
 void FeatureMatcher::run()
 {
     getPutativeMatches();
-    getGeomMatches();
+
+    if (mGeomTypes & cvutils::GeometricType::Homography)
+    {
+        getGeomMatches(cvutils::GeometricType::Homography,
+            findNextBestModel(cvutils::GeometricType::Homography, mGeomTypes));
+    }
+    if (mGeomTypes & cvutils::GeometricType::Affine)
+    {
+        getGeomMatches(cvutils::GeometricType::Affine,
+            findNextBestModel(cvutils::GeometricType::Affine, mGeomTypes));
+    }
+    if (mGeomTypes & cvutils::GeometricType::Similarity)
+    {
+        getGeomMatches(cvutils::GeometricType::Similarity,
+            findNextBestModel(cvutils::GeometricType::Similarity, mGeomTypes));
+    }
+    if (mGeomTypes & cvutils::GeometricType::Isometry)
+    {
+        getGeomMatches(cvutils::GeometricType::Isometry,
+            findNextBestModel(cvutils::GeometricType::Isometry, mGeomTypes));
+    }
 }
 
 void FeatureMatcher::getPutativeMatches()
@@ -67,7 +88,8 @@ void FeatureMatcher::getPutativeMatches()
     }
 }
 
-void FeatureMatcher::getGeomMatches()
+void FeatureMatcher::getGeomMatches(cvutils::GeometricType readType, 
+    cvutils::GeometricType::writeType)
 {
     auto pairwiseMatches = MatchesReader(mFtDir, MatchType::Putative).moveMatches();
     MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
