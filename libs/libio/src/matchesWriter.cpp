@@ -6,24 +6,21 @@
 
 namespace cvutils
 {
-MatchesWriter::MatchesWriter(const std::filesystem::path& ftDir, MatchType type)
-    : mFileName(ftDir / detail::matchTypeToFileName(type))
-    , mStream(mFileName.string(), std::ios::out | std::ios::binary)
+MatchesWriter::MatchesWriter(const std::filesystem::path& ftDir, GeometricType type)
+    : MatchesWriter(ftDir/ detail::geometricTypeToFileName(type))
 {
-    if (!std::filesystem::exists(ftDir)
-        || !std::filesystem::is_directory(ftDir))
-    {
-        throw std::filesystem::filesystem_error("Feature folder does not exist",
-            ftDir, std::make_error_code(std::errc::no_such_file_or_directory));
-    }
+}
 
+MatchesWriter::MatchesWriter(const std::filesystem::path& matchFile)
+    : mFileName(matchFile)
+    , mStream(matchFile.string(), std::ios::out | std::ios::binary)
+{
     if (!mStream.is_open())
     {
         throw std::filesystem::filesystem_error("Error opening matches file",
             mFileName, std::make_error_code(std::errc::io_error));
     }
 }
-
 MatchesWriter::~MatchesWriter()
 {
     {

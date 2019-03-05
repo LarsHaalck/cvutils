@@ -6,13 +6,14 @@ namespace cvutils
 enum class GeometricType : unsigned int
 {
     Undefined = 0x0,
-    Isometric = 0x1,
+    Isometry = 0x1,
     Similarity = 0x2,
-    Affine = 0x4,
-    Homography = 0x6
+    Affinity = 0x4,
+    Homography = 0x8,
+    Putative = 0x10,
 };
 
-inline constexpr GeometricTypeo perator&(GeometricType x, GeometricType y)
+inline constexpr GeometricType operator&(GeometricType x, GeometricType y)
 {
     return static_cast<GeometricType>(
         static_cast<unsigned int>(x) & static_cast<unsigned int>(y));

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "io/GeometricType.h"
+#include "io/geometricType.h"
 
 namespace cvutils
 {
@@ -16,9 +16,9 @@ constexpr auto descEnding = "-desc.bin";
 constexpr auto descKey = "desc";
 
 constexpr auto matchesPutativeName = "matches-putative.bin";
-constexpr auto matchesIsometryName = "matches-isomery.bin";
+constexpr auto matchesIsometryName = "matches-isometry.bin";
 constexpr auto matchesSimilarityName = "matches-similarity.bin";
-constexpr auto matchesAffineName = "matches-affine.bin";
+constexpr auto matchesAffineName = "matches-affinity.bin";
 constexpr auto matchesHomographyName = "matches-homography.bin";
 
 const std::string geometricTypeToFileName(cvutils::GeometricType type);

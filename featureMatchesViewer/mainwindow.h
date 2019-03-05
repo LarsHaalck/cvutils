@@ -28,13 +28,15 @@ public:
 private slots:
     void open();
     void save();
+    void change();
 
 private:
 
     // Open the openMVG data and create the QT item to visualize the pair
     void populateScene(const std::string& imgDir, const std::string& txtFile,
-        const std::string& ftDir, float scale, MatchType type);
+        const std::string& ftDir, float scale, const std::string& matchFile);
 
+    void populateMatches(const std::string& matchFile);
 
     QGraphicsScene* scene;
     MainFrame* view;

@@ -1,18 +1,19 @@
 #include "io/matchesReader.h"
 
 #include "cache/cacheFactory.h"
+#include "io/config.h"
 
 namespace cvutils
 {
-MatchesReader::MatchesReader(const std::filesystem::path& ftDir, MatchType type)
-    : MatchesReader(ftDir / detail::matchTypeToFileName(type))
+MatchesReader::MatchesReader(const std::filesystem::path& ftDir, GeometricType type)
+    : MatchesReader(ftDir / detail::geometricTypeToFileName(type))
 {
 }
 
-MatchesReader::MatchesReader(const std::filesystem::path& matchFile);
+MatchesReader::MatchesReader(const std::filesystem::path& matchFile)
 {
     if (!std::filesystem::exists(matchFile)
-        || !std::filesystem::is_file(matchFile))
+        || !std::filesystem::is_regular_file(matchFile))
     {
         throw std::filesystem::filesystem_error("Match file does not exist",
             matchFile, std::make_error_code(std::errc::no_such_file_or_directory));
@@ -23,7 +24,7 @@ MatchesReader::MatchesReader(const std::filesystem::path& matchFile);
     if (!stream.is_open())
     {
         throw std::filesystem::filesystem_error("Error opening matches file",
-            fileName, std::make_error_code(std::errc::io_error));
+            matchFile, std::make_error_code(std::errc::io_error));
     }
 
     {

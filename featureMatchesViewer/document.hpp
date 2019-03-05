@@ -28,5 +28,5 @@ struct Document
     std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>> pairWiseMatches;
     float scale;
     std::filesystem::path ftDir;
-    cvutils::MatchType type;
+    std::string matchFile;
 };

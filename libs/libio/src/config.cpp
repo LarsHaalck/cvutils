@@ -15,12 +15,13 @@ const std::string geometricTypeToFileName(cvutils::GeometricType type)
             return matchesIsometryName;
         case cvutils::GeometricType::Similarity:
             return matchesSimilarityName;
-        case cvutils::GeometricType::Affine:
+        case cvutils::GeometricType::Affinity:
             return matchesAffineName;
         case cvutils::GeometricType::Homography:
             return matchesHomographyName;
+        default:
+            return "";
     }
-    return "";
 }
 
 } // namespace detail

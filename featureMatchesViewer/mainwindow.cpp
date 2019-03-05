@@ -44,6 +44,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(saveAct, &QAction::triggered, this, &MainWindow::save);
     fileMenu->addAction(saveAct);
 
+    QAction * changeAct = new QAction(tr("&Change..."), this);
+    saveAct->setStatusTip(tr("Change matching file"));
+    connect(changeAct, &QAction::triggered, this, &MainWindow::change);
+    fileMenu->addAction(changeAct);
+
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(menu_bar);
     layout->addWidget(view);
@@ -64,7 +69,7 @@ void MainWindow::open()
     // don't return if this string is empty
     const QString txtFile = QFileDialog::getOpenFileName(
         this, tr("Choose a txt file (can be skipped)"),
-        QFileInfo(imgDir).path());
+        QFileInfo(imgDir).path(), tr("Txt file (*.txt)"));
 
     const QString ftDir = QFileDialog::getExistingDirectory(
         this, tr("Choose the feature directory"), QFileInfo(imgDir).path(),
@@ -80,50 +85,54 @@ void MainWindow::open()
     if (!ok)
         scale = 1.0;
 
-    QStringList items;
-    items << "Putative" << "Geometric" << "Putative filtered" << "Geometric filtered";
-    QString item = QInputDialog::getItem(this, tr("Select match type"), tr("type"),
-        items, 0, false, &ok);
-    MatchType type(MatchType::Putative);
-    if (item == items[0])
-        type = MatchType::Putative;
-    else if (item == items[1])
-        type = MatchType::Geometric;
-    else if (item == items[2])
-        type = MatchType::PutativeFiltered;
-    else if (item == items[3])
-        type = MatchType::GeometricFiltered;
+    const QString matchFile = QFileDialog::getOpenFileName(
+        this, tr("Choose a match file"),
+        QFileInfo(imgDir).path(), tr("Matches files (*.bin)"));
+
+    if (matchFile.isEmpty())
+      return;
 
     populateScene(imgDir.toStdString(), txtFile.toStdString(), ftDir.toStdString(),
-        scale, type);
+        scale, matchFile.toStdString());
     view->view()->setScene(scene);
     emit view->resetView();
 }
 
 void MainWindow::save()
 {
-    if (doc.type == MatchType::Putative
-            || doc.type == MatchType::PutativeFiltered)
-    {
-        MatchesWriter writer(doc.ftDir, MatchType::PutativeFiltered);
-        writer.writePairWiseMatches(doc.pairWiseMatches);
-    }
-    else
-    {
-        MatchesWriter writer(doc.ftDir, MatchType::GeometricFiltered);
-        writer.writePairWiseMatches(doc.pairWiseMatches);
-    }
+    const QString matchFile = QFileDialog::getSaveFileName(
+        this, tr("Choose a txt file (can be skipped)"),
+        QFileInfo(QString::fromStdString(doc.ftDir)).path(),
+        tr("Matches files (*.bin)"));
+
+    MatchesWriter writer(matchFile.toStdString());
+    writer.writePairWiseMatches(doc.pairWiseMatches);
 }
 
+void MainWindow::change()
+{
+    if (doc.ftDir.empty())
+        return;
+    const QString matchFile = QFileDialog::getOpenFileName(
+        this, tr("Choose a match file"),
+        QFileInfo(QString::fromStdString(doc.ftDir)).path(),
+        tr("Matches files (*.bin)"));
+
+    if (matchFile.isEmpty())
+      return;
+
+    populateMatches(matchFile.toStdString());
+}
 
 void MainWindow::populateScene(const std::string& imgDir, const std::string& txtFile,
-    const std::string& ftDir, float scale, MatchType type)
+    const std::string& ftDir, float scale, const std::string& matchFile)
 {
     scene = new QGraphicsScene(this);
 
     ImageReader imgReader(imgDir, txtFile);
     FeatureReader ftReader(imgDir, txtFile, ftDir);
-    MatchesReader matchReader(ftDir, type);
+    doc.ftDir = ftDir;
+    doc.scale = scale;
 
     doc.imgFiles.clear();
     doc.keyPoints.clear();
@@ -133,11 +142,15 @@ void MainWindow::populateScene(const std::string& imgDir, const std::string& txt
         doc.keyPoints.push_back(ftReader.getFeatures(i));
     }
 
+    populateMatches(matchFile);
+}
+void MainWindow::populateMatches(const std::string& matchFile)
+{
+    MatchesReader matchReader(matchFile);
     doc.pairWiseMatches = matchReader.moveMatches();
-    doc.scale = scale;
-    doc.ftDir = ftDir;
-    doc.type = type;
+    doc.matchFile = matchFile;
 
+    scene->clear();
     for (const auto& matches : doc.pairWiseMatches)
     {
         size_t idI = matches.first.first;

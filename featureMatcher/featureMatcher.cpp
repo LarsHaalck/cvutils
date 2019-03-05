@@ -9,6 +9,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 
+#include "transformation/isometry.h"
 #include "tqdm.h"
 
 namespace cvutils
@@ -17,7 +18,7 @@ namespace cvutils
     const std::filesystem::path& imgFolder,
     const std::filesystem::path& txtFile,
     const std::filesystem::path& ftDir,
-    int matcher, cvutils::GeometricType, int window, int cacheSize)
+    int matcher, cvutils::GeometricType geomTypes, int window, int cacheSize)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
@@ -33,32 +34,53 @@ void FeatureMatcher::run()
 {
     getPutativeMatches();
 
-    if (mGeomTypes & cvutils::GeometricType::Homography)
+    auto hom = cvutils::GeometricType::Homography;
+    auto aff = cvutils::GeometricType::Affinity;
+    auto sim = cvutils::GeometricType::Similarity;
+    auto iso = cvutils::GeometricType::Isometry;
+
+    if (static_cast<unsigned int>(mGeomTypes & hom))
+        getGeomMatches(hom, findNextBestModel(hom));
+
+    if (static_cast<unsigned int>(mGeomTypes & aff))
+        getGeomMatches(aff, findNextBestModel(aff));
+
+    if (static_cast<unsigned int>(mGeomTypes & sim))
+        getGeomMatches(sim, findNextBestModel(sim));
+
+    if (static_cast<unsigned int>(mGeomTypes & iso))
+        getGeomMatches(iso, findNextBestModel(iso));
+}
+
+cvutils::GeometricType FeatureMatcher::findNextBestModel(
+    cvutils::GeometricType currType)
+{
+    using geom = cvutils::GeometricType;
+    switch (currType)
     {
-        getGeomMatches(cvutils::GeometricType::Homography,
-            findNextBestModel(cvutils::GeometricType::Homography, mGeomTypes));
-    }
-    if (mGeomTypes & cvutils::GeometricType::Affine)
-    {
-        getGeomMatches(cvutils::GeometricType::Affine,
-            findNextBestModel(cvutils::GeometricType::Affine, mGeomTypes));
-    }
-    if (mGeomTypes & cvutils::GeometricType::Similarity)
-    {
-        getGeomMatches(cvutils::GeometricType::Similarity,
-            findNextBestModel(cvutils::GeometricType::Similarity, mGeomTypes));
-    }
-    if (mGeomTypes & cvutils::GeometricType::Isometry)
-    {
-        getGeomMatches(cvutils::GeometricType::Isometry,
-            findNextBestModel(cvutils::GeometricType::Isometry, mGeomTypes));
+        case geom::Isometry:
+            if (static_cast<unsigned int>(mGeomTypes & geom::Similarity))
+                return geom::Similarity;
+            [[fallthrough]];
+        case geom::Similarity:
+            if (static_cast<unsigned int>(mGeomTypes & geom::Affinity))
+                return geom::Affinity;
+            [[fallthrough]];
+        case geom::Affinity:
+            if (static_cast<unsigned int>(mGeomTypes & geom::Homography))
+                return geom::Homography;
+            [[fallthrough]];
+        case geom::Homography:
+            return geom::Putative;
+        default:
+            return geom::Undefined;
     }
 }
 
 void FeatureMatcher::getPutativeMatches()
 {
     DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
-    MatchesWriter matchesWriter(mFtDir, MatchType::Putative);
+    MatchesWriter matchesWriter(mFtDir, GeometricType::Putative);
 
     auto pairList = getPairList(descReader.numImages());
     auto descMatcher = getMatcher();
@@ -88,11 +110,11 @@ void FeatureMatcher::getPutativeMatches()
     }
 }
 
-void FeatureMatcher::getGeomMatches(cvutils::GeometricType readType, 
-    cvutils::GeometricType::writeType)
+void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
+    cvutils::GeometricType  readType)
 {
-    auto pairwiseMatches = MatchesReader(mFtDir, MatchType::Putative).moveMatches();
-    MatchesWriter matchesWriter(mFtDir, MatchType::Geometric);
+    auto pairwiseMatches = MatchesReader(mFtDir, readType).moveMatches();
+    MatchesWriter matchesWriter(mFtDir, writeType);
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
 
     std::cout << "\nGeometric verification..." << std::endl;
@@ -123,7 +145,7 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType readType,
             src.push_back(featsI[matches[i].queryIdx].pt);
             dst.push_back(featsJ[matches[i].trainIdx].pt);
         }
-        auto mask = getInlierMask(src, dst);
+        auto mask = getInlierMask(src, dst, writeType);
         std::vector<cv::DMatch> filteredMatches;
         for (size_t r = 0; r < mask.size(); r++)
         {
@@ -142,12 +164,59 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType readType,
 }
 
 std::vector<uchar> FeatureMatcher::getInlierMask(const std::vector<cv::Point2f>& src,
-    const std::vector<cv::Point2f>& dst)
+    const std::vector<cv::Point2f>& dst, cvutils::GeometricType type)
 {
-    return getInlierMaskHomo(src, dst);
+    std::vector<uchar> mask(src.size(), 0);
+    switch (type)
+    {
+        case cvutils::GeometricType::Isometry:
+            return getInlierMaskIsometry(src, dst);
+        case cvutils::GeometricType::Similarity:
+            return getInlierMaskSimilarity(src, dst);
+        case cvutils::GeometricType::Affinity:
+            return getInlierMaskAffinity(src, dst);
+        case cvutils::GeometricType::Homography:
+            return getInlierMaskHomography(src, dst);
+        default:
+            return mask;
+    }
+    return mask;
+}
+std::vector<uchar> FeatureMatcher::getInlierMaskIsometry(
+    const std::vector<cv::Point2f>& src, const std::vector<cv::Point2f>& dst)
+{
+    std::vector<uchar> mask;
+    if (src.size() >= 2)
+        cv::estimateIsometry2D(src, dst, mask);
+    else
+        mask = std::vector<uchar>(src.size(), 1);
+    return mask;
 }
 
-std::vector<uchar> FeatureMatcher::getInlierMaskHomo(const std::vector<cv::Point2f>& src,
+std::vector<uchar> FeatureMatcher::getInlierMaskSimilarity(
+    const std::vector<cv::Point2f>& src, const std::vector<cv::Point2f>& dst)
+{
+    std::vector<uchar> mask;
+    if (src.size() >= 2)
+        cv::estimateAffinePartial2D(src, dst, mask, cv::RANSAC);
+    else
+        mask = std::vector<uchar>(src.size(), 1);
+    return mask;
+}
+
+std::vector<uchar> FeatureMatcher::getInlierMaskAffinity(
+    const std::vector<cv::Point2f>& src, const std::vector<cv::Point2f>& dst)
+{
+    std::vector<uchar> mask;
+    if (src.size() >= 3)
+        cv::estimateAffine2D(src, dst, mask, cv::RANSAC);
+    else
+        mask = std::vector<uchar>(src.size(), 1);
+    return mask;
+}
+
+
+std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv::Point2f>& src,
     const std::vector<cv::Point2f>& dst)
 {
     std::vector<uchar> mask;

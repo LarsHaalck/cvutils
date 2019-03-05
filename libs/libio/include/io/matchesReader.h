@@ -14,7 +14,7 @@
 #include <opencv2/core.hpp>
 
 #include "cache/abstractCache.h"
-#include "fetch/matchesFetcher.h"
+#include "io/geometricType.h"
 
 namespace cereal
 {
@@ -38,7 +38,8 @@ class MatchesReader
 private:
     std::unordered_map<std::pair<size_t, size_t>, std::vector<cv::DMatch>> mMatches;
 public:
-    MatchesReader(const std::filesystem::path& ftDir, MatchType type);
+    MatchesReader(const std::filesystem::path& ftDir, GeometricType type);
+    MatchesReader(const std::filesystem::path& ftDir);
 
     size_t numMatches() const;
     std::vector<cv::DMatch> getMatches(size_t idI, size_t idJ) const;

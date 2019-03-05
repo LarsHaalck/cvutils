@@ -14,7 +14,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "io/matchType.h"
+#include "io/geometricType.h"
 #include "io/hash.h"
 
 namespace cereal
@@ -41,7 +41,8 @@ private:
     std::filesystem::path mFileName;
     std::ofstream mStream;
 public:
-    MatchesWriter(const std::filesystem::path& ftDir, MatchType type);
+    MatchesWriter(const std::filesystem::path& ftDir, GeometricType type);
+    MatchesWriter(const std::filesystem::path& matchFile);
     ~MatchesWriter();
 
 

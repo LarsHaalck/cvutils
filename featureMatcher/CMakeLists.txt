@@ -19,6 +19,7 @@ target_link_libraries(${targetName}
     opencv_calib3d
     stdc++fs
     io
+    iso
 )
 
 if(OpenMP_FOUND)

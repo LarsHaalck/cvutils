@@ -47,13 +47,13 @@ int main(int argc, char** argv)
         switch(g)
         {
             case 'i':
-                types |= cvutils::GeometricType::Isometric;
+                types |= cvutils::GeometricType::Isometry;
                 break;
             case 's':
                 types |= cvutils::GeometricType::Similarity;
                 break;
             case 'a':
-                types |= cvutils::GeometricType::Affine;
+                types |= cvutils::GeometricType::Affinity;
                 break;
             case 'h':
                 types |= cvutils::GeometricType::Homography;

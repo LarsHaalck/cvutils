@@ -34,6 +34,7 @@ public:
 
 private:
     //void test(const std::vector<std::string>& imgList);
+    cvutils::GeometricType findNextBestModel(cvutils::GeometricType currType);
     std::vector<std::pair<size_t, size_t>> getPairList(size_t size);
     std::vector<std::pair<size_t, size_t>> getExhaustivePairList(size_t size);
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
@@ -44,8 +45,14 @@ private:
         cvutils::GeometricType readType);
 
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
+        const std::vector<cv::Point2f>& dst, cvutils::GeometricType type);
+    std::vector<uchar> getInlierMaskIsometry(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
-    std::vector<uchar> getInlierMaskHomo(const std::vector<cv::Point2f>& src,
+    std::vector<uchar> getInlierMaskSimilarity(const std::vector<cv::Point2f>& src,
+        const std::vector<cv::Point2f>& dst);
+    std::vector<uchar> getInlierMaskAffinity(const std::vector<cv::Point2f>& src,
+        const std::vector<cv::Point2f>& dst);
+    std::vector<uchar> getInlierMaskHomography(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
 };
 }
