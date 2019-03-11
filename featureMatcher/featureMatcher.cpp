@@ -40,16 +40,28 @@ void FeatureMatcher::run()
     auto iso = cvutils::GeometricType::Isometry;
 
     if (static_cast<unsigned int>(mGeomTypes & hom))
+    {
         getGeomMatches(hom, findNextBestModel(hom));
+        filterMatches(hom);
+    }
 
     if (static_cast<unsigned int>(mGeomTypes & aff))
+    {
         getGeomMatches(aff, findNextBestModel(aff));
+        filterMatches(aff);
+    }
 
     if (static_cast<unsigned int>(mGeomTypes & sim))
+    {
         getGeomMatches(sim, findNextBestModel(sim));
+        filterMatches(sim);
+    }
 
     if (static_cast<unsigned int>(mGeomTypes & iso))
+    {
         getGeomMatches(iso, findNextBestModel(iso));
+        filterMatches(iso);
+    }
 }
 
 cvutils::GeometricType FeatureMatcher::findNextBestModel(
@@ -111,7 +123,7 @@ void FeatureMatcher::getPutativeMatches()
 }
 
 void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
-    cvutils::GeometricType  readType)
+    cvutils::GeometricType readType)
 {
     auto pairwiseMatches = MatchesReader(mFtDir, readType).moveMatches();
     MatchesWriter matchesWriter(mFtDir, writeType);
@@ -145,6 +157,7 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
             src.push_back(featsI[matches[i].queryIdx].pt);
             dst.push_back(featsJ[matches[i].trainIdx].pt);
         }
+
         auto mask = getInlierMask(src, dst, writeType);
         std::vector<cv::DMatch> filteredMatches;
         for (size_t r = 0; r < mask.size(); r++)
@@ -161,6 +174,47 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
             bar.progress(count++, keys.size());
         }
     }
+
+}
+
+void FeatureMatcher::filterMatches(cvutils::GeometricType geomType)
+{
+    // this only makes sense for window matching
+    if (mWindow == 0)
+        return;
+
+    auto pairwiseMatches = MatchesReader(mFtDir, geomType).moveMatches();
+    MatchesWriter matchesWriter(mFtDir, geomType);
+
+    std::vector<std::pair<size_t, size_t>> keys;
+    keys.reserve(pairwiseMatches.size());
+
+    for(const auto& matches : pairwiseMatches)
+    {
+        if (!matches.second.empty())
+            keys.push_back(matches.first);
+    }
+
+    std::sort(std::begin(keys), std::end(keys));
+    std::pair<size_t, size_t> lastPair = keys[0];
+    std::pair<size_t, size_t> drain = {-1, -1};
+    for (size_t i = 1; i < keys.size(); i++)
+    {
+        // check if gap is more than 2
+        if (lastPair.first == keys[i].first && lastPair.second + 2 < keys[i].second)
+           drain = keys[i];
+
+        if (drain.first != static_cast<size_t>(-1))
+        {
+            if (keys[i].first == drain.first && keys[i].second >= drain.second)
+                pairwiseMatches.erase(keys[i]);
+            else
+                drain.first = -1;
+        }
+        lastPair = keys[i];
+    }
+
+    matchesWriter.writePairWiseMatches(std::move(pairwiseMatches));
 }
 
 std::vector<uchar> FeatureMatcher::getInlierMask(const std::vector<cv::Point2f>& src,
@@ -190,28 +244,33 @@ std::vector<uchar> FeatureMatcher::getInlierMaskIsometry(
         cv::estimateIsometry2D(src, dst, mask);
     else
         mask = std::vector<uchar>(src.size(), 1);
+
     return mask;
 }
 
 std::vector<uchar> FeatureMatcher::getInlierMaskSimilarity(
     const std::vector<cv::Point2f>& src, const std::vector<cv::Point2f>& dst)
 {
+    cv::Mat mat;
     std::vector<uchar> mask;
     if (src.size() >= 2)
-        cv::estimateAffinePartial2D(src, dst, mask, cv::RANSAC);
+        mat = cv::estimateAffinePartial2D(src, dst, mask, cv::RANSAC);
     else
         mask = std::vector<uchar>(src.size(), 1);
+
     return mask;
 }
 
 std::vector<uchar> FeatureMatcher::getInlierMaskAffinity(
     const std::vector<cv::Point2f>& src, const std::vector<cv::Point2f>& dst)
 {
+    cv::Mat mat;
     std::vector<uchar> mask;
     if (src.size() >= 3)
-        cv::estimateAffine2D(src, dst, mask, cv::RANSAC);
+        mat = cv::estimateAffine2D(src, dst, mask, cv::RANSAC);
     else
         mask = std::vector<uchar>(src.size(), 1);
+
     return mask;
 }
 
@@ -220,10 +279,48 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv:
     const std::vector<cv::Point2f>& dst)
 {
     std::vector<uchar> mask;
+    cv::Mat mat;
     if (src.size() >= 4)
-        cv::findHomography(src, dst, cv::RANSAC, 3.0, mask);
+        mat = cv::findHomography(src, dst, mask, cv::RANSAC);
     else
         mask = std::vector<uchar>(src.size(), 1);
+
+
+    // TODO: make this optional
+    cv::SVD svd(mat, cv::SVD::NO_UV);
+    double conditionNumber = svd.w.at<double>(0, 1) / svd.w.at<double>(2, 0);
+    /* std::cout << "Condition:  " << conditionNumber << std::endl; */
+    if (conditionNumber > 200)
+        return std::vector<uchar>(src.size(), 0);
+
+    /* std::vector<cv::Point2f> srcFiltered, dstFiltered; */
+    /* for (size_t r = 0; r < mask.size(); r++) */
+    /* { */
+    /*     if (mask[r]) */
+    /*     { */
+    /*         srcFiltered.push_back(src[r]); */
+    /*         dstFiltered.push_back(dst[r]); */
+    /*     } */
+    /* } */
+    /* std::vector<cv::Point2f> dstTrans; */
+    /* cv::perspectiveTransform(srcFiltered, dstTrans, mat); */
+    /* double meanError = 0.0; */
+    /* size_t count = 0; */
+    /* for (size_t i = 0; i < srcFiltered.size(); i++) */
+    /* { */
+    /*     double localError = */
+    /*         (dstTrans[i].x - dstFiltered[i].x) * (dstTrans[i].x - dstFiltered[i].x) */
+    /*         + (dstTrans[i].y - dstFiltered[i].y) * (dstTrans[i].y - dstFiltered[i].y); */
+
+    /*     if (localError > 3.0) */
+    /*         mask[i] = 0; */
+    /*     else */
+    /*     { */
+    /*         meanError += localError; */
+    /*         count++; */
+    /*     } */
+    /* } */
+    /* std::cout << "Mean reproj: " << meanError / count << std::endl; */
     return mask;
 }
 

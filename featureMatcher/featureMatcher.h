@@ -44,6 +44,8 @@ private:
     void getGeomMatches(cvutils::GeometricType writeType,
         cvutils::GeometricType readType);
 
+    void filterMatches(cvutils::GeometricType geomType);
+
     std::vector<uchar> getInlierMask(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst, cvutils::GeometricType type);
     std::vector<uchar> getInlierMaskIsometry(const std::vector<cv::Point2f>& src,
