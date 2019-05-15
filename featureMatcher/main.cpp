@@ -9,31 +9,43 @@ int main(int argc, char** argv)
 {
     std::string inFolder, txtFile;
     std::string ftFolder;
+    bool isBinary;
     int matcher, window;
     int cacheSize;
     std::vector<char> geoms;
+    bool prune;
+    double condition;
+    double minDist;
 
     cxxopts::Options options("ftMatch", "Feature matcher + export helper");
     options.add_options()
         ("i,in", "image folder", cxxopts::value(inFolder))
         ("t,txt", "txt file", cxxopts::value(txtFile))
-        ("f,featureFile", "feature folder", cxxopts::value(ftFolder))
+        ("f,featureFolder", "feature folder", cxxopts::value(ftFolder))
+        ("b,binaryFeature", "set if used feature was binary (e.g. ORB)",
+            cxxopts::value(isBinary))
         ("m,matcher", "matcher method (0, 1) for (brute, flann), default 0",
             cxxopts::value(matcher))
         ("g,geometric", "geometric model for filtering (can be repeated): \
             i (isometric), s (similarity), a (affine), h (homography) default h",
             cxxopts::value(geoms))
         ("w,window", "window size (use all pairs if skipped)", cxxopts::value(window))
+        ("p,prune", "prune non-consecutive matches", cxxopts::value(prune))
+        ("k,condition", "condition number filtering", cxxopts::value(condition))
+        ("d,distance", "min distance for flann based", cxxopts::value(minDist))
         ("c,cache", "cache size (if loading all into RAM is not feasable) (< 0) means \
             inf cache, (= 0) means no cache", cxxopts::value(cacheSize));
 
     auto result = options.parse(argc, argv);
     if (result.count("in") != 1
-        || result.count("featureFile") != 1)
+        || result.count("featureFolder") != 1)
     {
         std::cout << options.help() << std::endl;
         return -1;
     }
+
+    if (result.count("binaryFeature") != 1)
+            isBinary = false;
 
     if (result.count("matcher") != 1 || matcher < 0 || matcher > 1)
     {
@@ -76,12 +88,16 @@ int main(int argc, char** argv)
     }
 
     if (result.count("cache") != 1)
-    {
             cacheSize = -1;
-    }
+    if (result.count("prune") != 1)
+        prune = false;
+    if (result.count("condition") != 1)
+            condition = 0;
+    if (result.count("distance") != 1)
+            minDist = 0;
 
-    cvutils::FeatureMatcher ftMatcher(inFolder, txtFile, ftFolder, matcher, types, window,
-        cacheSize);
+    cvutils::FeatureMatcher ftMatcher(inFolder, txtFile, ftFolder, isBinary, matcher,
+        types, window, cacheSize, prune, condition, minDist);
     ftMatcher.run();
 
     return 0;

@@ -22,14 +22,22 @@ private:
     std::filesystem::path mImgFolder;
     std::filesystem::path mTxtFile;
     std::filesystem::path mFtDir;
+    bool mIsBinary;
     int mMatcher;
     cvutils::GeometricType mGeomTypes;
     int mWindow;
     int mCacheSize;
+    bool mPrune;
+    double mCondition;
+    double mMinDist;
+
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
-        int matcher, cvutils::GeometricType geomTypes, int window, int cacheSize);
+        bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
+        int cacheSize, bool prune, double condition, double minDist);
+
+
     void run();
 
 private:

@@ -18,14 +18,19 @@ namespace cvutils
     const std::filesystem::path& imgFolder,
     const std::filesystem::path& txtFile,
     const std::filesystem::path& ftDir,
-    int matcher, cvutils::GeometricType geomTypes, int window, int cacheSize)
+    bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
+    int cacheSize, bool prune, double condition, double minDist)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
+    , mIsBinary(isBinary)
     , mMatcher(matcher)
     , mGeomTypes(geomTypes)
     , mWindow(window)
     , mCacheSize(cacheSize)
+    , mPrune(prune)
+    , mCondition(condition)
+    , mMinDist(minDist)
 {
     mGeomTypes |= cvutils::GeometricType::Putative;
 }
@@ -68,6 +73,7 @@ cvutils::GeometricType FeatureMatcher::findNextBestModel(
     cvutils::GeometricType currType)
 {
     using geom = cvutils::GeometricType;
+    return geom::Putative;
     switch (currType)
     {
         case geom::Isometry:
@@ -112,7 +118,21 @@ void FeatureMatcher::getPutativeMatches()
         const auto descJ = descReader.getDescriptors(idJ);
 
         std::vector<cv::DMatch> currMatches;
-        descMatcher->match(descI, descJ, currMatches);
+        if (mMinDist > 0)
+        {
+            std::vector<std::vector<cv::DMatch>> knnMatches;
+            descMatcher->knnMatch(descI, descJ, knnMatches, 2);
+
+            for (size_t i = 0; i < knnMatches.size(); ++i)
+            {
+                if (knnMatches[i][0].distance < mMinDist * knnMatches[i][1].distance)
+                    currMatches.push_back(knnMatches[i][0]);
+            }
+
+        }
+        else
+            descMatcher->match(descI, descJ, currMatches);
+
 
         #pragma omp critical
         {
@@ -180,7 +200,7 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
 void FeatureMatcher::filterMatches(cvutils::GeometricType geomType)
 {
     // this only makes sense for window matching
-    if (mWindow == 0)
+    if (mWindow == 0 || !mPrune)
         return;
 
     auto pairwiseMatches = MatchesReader(mFtDir, geomType).moveMatches();
@@ -286,41 +306,14 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv:
         mask = std::vector<uchar>(src.size(), 1);
 
 
-    // TODO: make this optional
-    cv::SVD svd(mat, cv::SVD::NO_UV);
-    double conditionNumber = svd.w.at<double>(0, 1) / svd.w.at<double>(2, 0);
-    /* std::cout << "Condition:  " << conditionNumber << std::endl; */
-    if (conditionNumber > 200)
-        return std::vector<uchar>(src.size(), 0);
+    if (mCondition)
+    {
+        cv::SVD svd(mat, cv::SVD::NO_UV);
+        double conditionNumber = svd.w.at<double>(0, 1) / svd.w.at<double>(2, 0);
+        if (conditionNumber > mCondition)
+            return std::vector<uchar>(src.size(), 0);
+    }
 
-    /* std::vector<cv::Point2f> srcFiltered, dstFiltered; */
-    /* for (size_t r = 0; r < mask.size(); r++) */
-    /* { */
-    /*     if (mask[r]) */
-    /*     { */
-    /*         srcFiltered.push_back(src[r]); */
-    /*         dstFiltered.push_back(dst[r]); */
-    /*     } */
-    /* } */
-    /* std::vector<cv::Point2f> dstTrans; */
-    /* cv::perspectiveTransform(srcFiltered, dstTrans, mat); */
-    /* double meanError = 0.0; */
-    /* size_t count = 0; */
-    /* for (size_t i = 0; i < srcFiltered.size(); i++) */
-    /* { */
-    /*     double localError = */
-    /*         (dstTrans[i].x - dstFiltered[i].x) * (dstTrans[i].x - dstFiltered[i].x) */
-    /*         + (dstTrans[i].y - dstFiltered[i].y) * (dstTrans[i].y - dstFiltered[i].y); */
-
-    /*     if (localError > 3.0) */
-    /*         mask[i] = 0; */
-    /*     else */
-    /*     { */
-    /*         meanError += localError; */
-    /*         count++; */
-    /*     } */
-    /* } */
-    /* std::cout << "Mean reproj: " << meanError / count << std::endl; */
     return mask;
 }
 
@@ -362,8 +355,15 @@ cv::Ptr<cv::DescriptorMatcher> FeatureMatcher::getMatcher()
 {
     if (mMatcher)
     {
-        return cv::DescriptorMatcher::create(
-            cv::DescriptorMatcher::MatcherType::FLANNBASED);
+        if (mIsBinary)
+        {
+            return cv::makePtr<cv::FlannBasedMatcher>(cv::makePtr<cv::flann::LshIndexParams>(20, 10, 2));
+        }
+        else
+        {
+            return cv::DescriptorMatcher::create(
+                cv::DescriptorMatcher::MatcherType::FLANNBASED);
+        }
     }
     else
     {
