@@ -73,7 +73,6 @@ cvutils::GeometricType FeatureMatcher::findNextBestModel(
     cvutils::GeometricType currType)
 {
     using geom = cvutils::GeometricType;
-    return geom::Putative;
     switch (currType)
     {
         case geom::Isometry:
@@ -108,7 +107,7 @@ void FeatureMatcher::getPutativeMatches()
     size_t count = 0;
     // opencv uses parallelization internally
     // openmp for loop is not necessary and in this case even performance hindering
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic, 2)
     for (size_t k = 0; k < pairList.size(); k++)
     {
         const auto pair = pairList[k];
@@ -261,9 +260,9 @@ std::vector<uchar> FeatureMatcher::getInlierMaskIsometry(
 {
     std::vector<uchar> mask;
     if (src.size() >= 2)
-        cv::estimateIsometry2D(src, dst, mask);
+        cv::estimateIsometry2D(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 1);
+        mask = std::vector<uchar>(src.size(), 0);
 
     return mask;
 }
@@ -276,7 +275,7 @@ std::vector<uchar> FeatureMatcher::getInlierMaskSimilarity(
     if (src.size() >= 2)
         mat = cv::estimateAffinePartial2D(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 1);
+        mask = std::vector<uchar>(src.size(), 0);
 
     return mask;
 }
@@ -289,7 +288,7 @@ std::vector<uchar> FeatureMatcher::getInlierMaskAffinity(
     if (src.size() >= 3)
         mat = cv::estimateAffine2D(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 1);
+        mask = std::vector<uchar>(src.size(), 0);
 
     return mask;
 }
@@ -300,16 +299,17 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv:
 {
     std::vector<uchar> mask;
     cv::Mat mat;
-    if (src.size() >= 4)
+    if (src.size() >= 10)
         mat = cv::findHomography(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 1);
+        return std::vector<uchar>(src.size(), 0);
 
 
-    if (mCondition)
+    if (mCondition && !mat.empty())
     {
         cv::SVD svd(mat, cv::SVD::NO_UV);
         double conditionNumber = svd.w.at<double>(0, 1) / svd.w.at<double>(2, 0);
+        /* std::cout << conditionNumber << std::endl; */
         if (conditionNumber > mCondition)
             return std::vector<uchar>(src.size(), 0);
     }

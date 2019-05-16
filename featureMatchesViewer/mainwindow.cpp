@@ -164,8 +164,8 @@ void MainWindow::populateMatches(const std::string& matchFile)
         QGraphicsItem* item = new PairGraphicsItem(color, idI , idJ, matches.second.size());
 
         item->setPos(QPointF(
-            idI * item->boundingRect().width() * 1.1,
-            idJ * item->boundingRect().height() * 1.1));
+            idJ * item->boundingRect().width() * 1.1,
+            idI * item->boundingRect().height() * 1.1));
         scene->addItem(item);
     }
 }
