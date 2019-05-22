@@ -8,6 +8,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
+#include "io/imageReader.h"
 #include "io/featureReader.h"
 #include "io/descriptorReader.h"
 #include "io/matchesReader.h"
@@ -30,12 +31,13 @@ private:
     bool mPrune;
     double mCondition;
     double mMinDist;
+    double mMinCoverage;
 
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
         bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
-        int cacheSize, bool prune, double condition, double minDist);
+        int cacheSize, bool prune, double condition, double minDist, double minCoverage);
 
 
     void run();

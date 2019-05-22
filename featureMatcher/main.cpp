@@ -16,6 +16,7 @@ int main(int argc, char** argv)
     bool prune;
     double condition;
     double minDist;
+    double minCoverage;
 
     cxxopts::Options options("ftMatch", "Feature matcher + export helper");
     options.add_options()
@@ -33,6 +34,7 @@ int main(int argc, char** argv)
         ("p,prune", "prune non-consecutive matches", cxxopts::value(prune))
         ("k,condition", "condition number filtering", cxxopts::value(condition))
         ("d,distance", "min distance for flann based", cxxopts::value(minDist))
+        ("o,coverage", "min coverage of match bounding box", cxxopts::value(minCoverage))
         ("c,cache", "cache size (if loading all into RAM is not feasable) (< 0) means \
             inf cache, (= 0) means no cache", cxxopts::value(cacheSize));
 
@@ -95,9 +97,11 @@ int main(int argc, char** argv)
             condition = 0;
     if (result.count("distance") != 1)
             minDist = 0;
+    if (result.count("coverage") != 1)
+            minCoverage = 0;
 
     cvutils::FeatureMatcher ftMatcher(inFolder, txtFile, ftFolder, isBinary, matcher,
-        types, window, cacheSize, prune, condition, minDist);
+        types, window, cacheSize, prune, condition, minDist, minCoverage);
     ftMatcher.run();
 
     return 0;

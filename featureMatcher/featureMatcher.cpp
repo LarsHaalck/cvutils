@@ -19,7 +19,7 @@ namespace cvutils
     const std::filesystem::path& txtFile,
     const std::filesystem::path& ftDir,
     bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
-    int cacheSize, bool prune, double condition, double minDist)
+    int cacheSize, bool prune, double condition, double minDist, double minCoverage)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
@@ -31,6 +31,7 @@ namespace cvutils
     , mPrune(prune)
     , mCondition(condition)
     , mMinDist(minDist)
+    , mMinCoverage(minCoverage)
 {
     mGeomTypes |= cvutils::GeometricType::Putative;
 }
@@ -147,6 +148,8 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
     auto pairwiseMatches = MatchesReader(mFtDir, readType).moveMatches();
     MatchesWriter matchesWriter(mFtDir, writeType);
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
+    // TODO: scale
+    ImageReader imgReader(mImgFolder, mTxtFile);
 
     std::cout << "\nGeometric verification..." << std::endl;
     tqdm bar;
@@ -159,7 +162,7 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
         keys.push_back(matches.first);
 
     // for every matching image pair
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic, 2)
     for (size_t i = 0; i < keys.size(); i++)
     {
         auto pair = keys[i];
@@ -179,10 +182,26 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
 
         auto mask = getInlierMask(src, dst, writeType);
         std::vector<cv::DMatch> filteredMatches;
+        std::vector<cv::Point2f> srcFiltered, dstFiltered;
         for (size_t r = 0; r < mask.size(); r++)
         {
             if (mask[r])
+            {
                filteredMatches.push_back(matches[r]);
+               srcFiltered.push_back(src[r]);
+               dstFiltered.push_back(dst[r]);
+            }
+        }
+
+        if (mMinCoverage)
+        {
+            int rectI = cv::boundingRect(srcFiltered).area();
+            int rectJ = cv::boundingRect(dstFiltered).area();
+            int areaI = imgReader.getImage(idI).rows * imgReader.getImage(idI).cols;
+            int areaJ = imgReader.getImage(idJ).rows * imgReader.getImage(idJ).cols;
+            if (rectI < mMinCoverage * areaI || rectJ < mMinCoverage * areaJ)
+                filteredMatches.clear();
+
         }
 
         matches = std::move(filteredMatches);
