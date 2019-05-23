@@ -14,6 +14,7 @@ int main(int argc, char** argv)
     int cacheSize;
     std::vector<char> geoms;
     bool prune;
+    bool checkSymmetry;
     double condition;
     double minDist;
     double minCoverage;
@@ -35,6 +36,7 @@ int main(int argc, char** argv)
         ("k,condition", "condition number filtering", cxxopts::value(condition))
         ("d,distance", "min distance for flann based", cxxopts::value(minDist))
         ("o,coverage", "min coverage of match bounding box", cxxopts::value(minCoverage))
+        ("s,symmetry", "check symmetriy of matching", cxxopts::value(checkSymmetry))
         ("c,cache", "cache size (if loading all into RAM is not feasable) (< 0) means \
             inf cache, (= 0) means no cache", cxxopts::value(cacheSize));
 
@@ -99,9 +101,11 @@ int main(int argc, char** argv)
             minDist = 0;
     if (result.count("coverage") != 1)
             minCoverage = 0;
+    if (result.count("symmetry") != 1)
+            checkSymmetry = false;
 
     cvutils::FeatureMatcher ftMatcher(inFolder, txtFile, ftFolder, isBinary, matcher,
-        types, window, cacheSize, prune, condition, minDist, minCoverage);
+        types, window, cacheSize, prune, condition, minDist, minCoverage, checkSymmetry);
     ftMatcher.run();
 
     return 0;

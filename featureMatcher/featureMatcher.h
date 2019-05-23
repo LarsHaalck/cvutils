@@ -32,23 +32,31 @@ private:
     double mCondition;
     double mMinDist;
     double mMinCoverage;
+    bool mCheckSymmetry;
 
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
         bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
-        int cacheSize, bool prune, double condition, double minDist, double minCoverage);
+        int cacheSize, bool prune, double condition, double minDist, double minCoverage,
+        bool checkSymmetry);
 
 
     void run();
 
 private:
-    //void test(const std::vector<std::string>& imgList);
     cvutils::GeometricType findNextBestModel(cvutils::GeometricType currType);
     std::vector<std::pair<size_t, size_t>> getPairList(size_t size);
     std::vector<std::pair<size_t, size_t>> getExhaustivePairList(size_t size);
     std::vector<std::pair<size_t, size_t>> getWindowPairList(size_t size);
     cv::Ptr<cv::DescriptorMatcher> getMatcher();
+
+
+    std::vector<cv::DMatch> match(cv::Ptr<cv::DescriptorMatcher> descMatcher,
+        const cv::Mat& descI, const cv::Mat& descJ);
+
+    std::vector<cv::DMatch> keepSymmetricMatches(const std::vector<cv::DMatch>& matchesI,
+        const std::vector<cv::DMatch>& matchesJ);
 
     void getPutativeMatches();
     void getGeomMatches(cvutils::GeometricType writeType,
@@ -66,6 +74,18 @@ private:
         const std::vector<cv::Point2f>& dst);
     std::vector<uchar> getInlierMaskHomography(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
+
+    inline size_t getInlierCount(const std::vector<uchar>& mask)
+    {
+        size_t count = 0;
+        for (const auto id : mask)
+        {
+            if (id)
+                count++;
+        }
+        return count;
+
+    }
 };
 }
 

@@ -19,7 +19,8 @@ namespace cvutils
     const std::filesystem::path& txtFile,
     const std::filesystem::path& ftDir,
     bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
-    int cacheSize, bool prune, double condition, double minDist, double minCoverage)
+    int cacheSize, bool prune, double condition, double minDist, double minCoverage,
+    bool checkSymmetry)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
@@ -32,6 +33,7 @@ namespace cvutils
     , mCondition(condition)
     , mMinDist(minDist)
     , mMinCoverage(minCoverage)
+    , mCheckSymmetry(checkSymmetry)
 {
     mGeomTypes |= cvutils::GeometricType::Putative;
 }
@@ -95,6 +97,51 @@ cvutils::GeometricType FeatureMatcher::findNextBestModel(
     }
 }
 
+std::vector<cv::DMatch> FeatureMatcher::match(cv::Ptr<cv::DescriptorMatcher> descMatcher,
+    const cv::Mat& descI, const cv::Mat& descJ)
+{
+    std::vector<cv::DMatch> currMatches;
+    if (mMinDist > 0)
+    {
+        std::vector<std::vector<cv::DMatch>> knnMatches;
+        descMatcher->knnMatch(descI, descJ, knnMatches, 2);
+
+        for (size_t i = 0; i < knnMatches.size(); ++i)
+        {
+            if (knnMatches[i].size() < 1)
+                continue;
+
+            if (knnMatches[i][0].distance < mMinDist * knnMatches[i][1].distance)
+                currMatches.push_back(knnMatches[i][0]);
+        }
+
+    }
+    else
+        descMatcher->match(descI, descJ, currMatches);
+
+    return currMatches;
+
+}
+
+std::vector<cv::DMatch> FeatureMatcher::keepSymmetricMatches(
+    const std::vector<cv::DMatch>& matchesI, const std::vector<cv::DMatch>& matchesJ)
+{
+    std::vector<cv::DMatch> remainingMatches;
+    for (const auto& matchI : matchesI)
+    {
+        for (const auto& matchJ : matchesJ)
+        {
+            if (matchI.trainIdx == matchJ.queryIdx &&
+                matchJ.trainIdx == matchI.queryIdx)
+            {
+                remainingMatches.push_back(matchI);
+                break;
+            }
+        }
+    }
+    return remainingMatches;
+}
+
 void FeatureMatcher::getPutativeMatches()
 {
     DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
@@ -117,22 +164,13 @@ void FeatureMatcher::getPutativeMatches()
         const auto descI = descReader.getDescriptors(idI);
         const auto descJ = descReader.getDescriptors(idJ);
 
-        std::vector<cv::DMatch> currMatches;
-        if (mMinDist > 0)
+        auto currMatches = match(descMatcher, descI, descJ);
+
+        if (mCheckSymmetry)
         {
-            std::vector<std::vector<cv::DMatch>> knnMatches;
-            descMatcher->knnMatch(descI, descJ, knnMatches, 2);
-
-            for (size_t i = 0; i < knnMatches.size(); ++i)
-            {
-                if (knnMatches[i][0].distance < mMinDist * knnMatches[i][1].distance)
-                    currMatches.push_back(knnMatches[i][0]);
-            }
-
+            auto currMatches1 = match(descMatcher, descJ, descI);
+            currMatches = keepSymmetricMatches(currMatches, currMatches1);
         }
-        else
-            descMatcher->match(descI, descJ, currMatches);
-
 
         #pragma omp critical
         {
@@ -281,7 +319,11 @@ std::vector<uchar> FeatureMatcher::getInlierMaskIsometry(
     if (src.size() >= 2)
         cv::estimateIsometry2D(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 0);
+        return std::vector<uchar>(src.size(), 0);
+
+    if (getInlierCount(mask) < 2 * 2.5)
+        return std::vector<uchar>(src.size(), 0);
+
 
     return mask;
 }
@@ -294,7 +336,10 @@ std::vector<uchar> FeatureMatcher::getInlierMaskSimilarity(
     if (src.size() >= 2)
         mat = cv::estimateAffinePartial2D(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 0);
+        return std::vector<uchar>(src.size(), 0);
+
+    if (getInlierCount(mask) < 2 * 2.5)
+        return std::vector<uchar>(src.size(), 0);
 
     return mask;
 }
@@ -307,7 +352,10 @@ std::vector<uchar> FeatureMatcher::getInlierMaskAffinity(
     if (src.size() >= 3)
         mat = cv::estimateAffine2D(src, dst, mask, cv::RANSAC);
     else
-        mask = std::vector<uchar>(src.size(), 0);
+        return mask = std::vector<uchar>(src.size(), 0);
+
+    if (getInlierCount(mask) < 3 * 2.5)
+        return std::vector<uchar>(src.size(), 0);
 
     return mask;
 }
@@ -318,9 +366,12 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv:
 {
     std::vector<uchar> mask;
     cv::Mat mat;
-    if (src.size() >= 10)
-        mat = cv::findHomography(src, dst, mask, cv::RANSAC);
+    if (src.size() >= 4)
+        mat = cv::findHomography(src, dst, mask, cv::RHO, 4.0);
     else
+        return std::vector<uchar>(src.size(), 0);
+
+    if (getInlierCount(mask) < 4 * 2.5)
         return std::vector<uchar>(src.size(), 0);
 
 
