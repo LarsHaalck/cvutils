@@ -1,5 +1,6 @@
 #include "featureDetector.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 
@@ -13,11 +14,12 @@ namespace cvutils
 {
 FeatureDetector::FeatureDetector(const std::string& imgDir,
     const std::string& txtFile, const std::string& ftDir,
-    const std::string& ftFile, float scale)
+    const std::string& ftFile, float scale, bool removeDuplicates)
     : mReader(imgDir, txtFile, scale, cv::ImreadModes::IMREAD_GRAYSCALE, 0)
     , mFtWriter(ftDir)
     , mDescWriter(ftDir)
     , mFtFile(ftFile)
+    , mRemoveDuplicates(removeDuplicates)
 {
     if (!std::filesystem::exists(mFtFile)
         || !std::filesystem::is_regular_file(mFtFile))
@@ -30,7 +32,6 @@ FeatureDetector::FeatureDetector(const std::string& imgDir,
 void FeatureDetector::run()
 {
     auto ftPtr = getFtPtr();
-    //auto files = misc::IO::getImgFiles(mInFolder, mTxtFile);
     auto numFiles = mReader.numImages();
 
     tqdm bar;
@@ -41,13 +42,97 @@ void FeatureDetector::run()
         auto img = mReader.getImage(i);
         std::vector<cv::KeyPoint> features;
         cv::Mat descriptors;
-        ftPtr->detectAndCompute(img, cv::Mat(), features, descriptors);
+        ftPtr->detect(img, features);
+
+        if (mRemoveDuplicates)
+        {
+            auto uniqueIds = getUniqueIds(features);
+            std::vector<cv::KeyPoint> featuresFiltered;
+            featuresFiltered.reserve(uniqueIds.size());
+
+            for (size_t k = 0; k < uniqueIds.size(); k++)
+                featuresFiltered.push_back(std::move(features[uniqueIds[k]]));
+            features = std::move(featuresFiltered);
+        }
+
+        ftPtr->compute(img, features, descriptors);
+
+        /* for (const auto& elem : features) */
+        /*     std::cout << elem.pt.x << ", " << elem.pt.y << std::endl; */
+
+
         mFtWriter.writeFeatures(mReader.getImageName(i), features);
         mDescWriter.writeDescriptors(mReader.getImageName(i), descriptors);
 
         #pragma omp critical
         bar.progress(current++, numFiles);
     }
+}
+
+bool FeatureDetector::FeatureStruct::operator<(const FeatureStruct& rhs) const
+{
+    if (std::abs(this->x - rhs.x) < 1e-3)
+    {
+        if (std::abs(this->y - rhs.y) >= 1e-3 &&
+            this->y < rhs.y)
+        {
+            return true;
+        }
+    }
+    else
+    {
+        if (this->x < rhs.x)
+            return true;
+    }
+
+    return false;
+}
+
+bool FeatureDetector::FeatureStruct::operator==(const FeatureStruct& rhs) const
+{
+    if (std::abs(this->x - rhs.x) < 1e-3 &&
+        std::abs(this->y - rhs.y) < 1e-3)
+    {
+        return true;
+    }
+    return false;
+}
+
+
+std::vector<size_t> FeatureDetector::getUniqueIds(
+    const std::vector<cv::KeyPoint>& features)
+{
+    std::vector<FeatureStruct> featuresStruct;
+    featuresStruct.reserve(features.size());
+    for (size_t i = 0; i < features.size(); i++)
+        featuresStruct.push_back(FeatureStruct(features[i], i));
+
+    // sort and erase non-unique elements
+    std::sort(std::begin(featuresStruct), std::end(featuresStruct),
+        [](const auto& lhs, const auto& rhs){ return lhs.operator<(rhs); });
+
+    /* std::cout << "--------------------------------------------------------------------------------" << std::endl; */
+    /* for (const auto& elem :  featuresStruct) */
+    /*     std::cout << elem.x << ", " << elem.y << std::endl; */
+
+    auto lastIt = std::unique(std::begin(featuresStruct), std::end(featuresStruct),
+        [](const auto& lhs, const auto& rhs) { return lhs.operator==(rhs); });
+    featuresStruct.erase(lastIt, std::end(featuresStruct));
+
+    /* std::cout << "--------------------------------------------------------------------------------" << std::endl; */
+    /* for (const auto& elem :  featuresStruct) */
+    /*     std::cout << elem.x << ", " << elem.y << std::endl; */
+
+    // generate id array for later filtering
+    std::vector<size_t> uniqueIds;
+    uniqueIds.reserve(featuresStruct.size());
+
+    for (const auto& ftStruct : featuresStruct)
+        uniqueIds.push_back(ftStruct.idx);
+
+    std::sort(std::begin(uniqueIds), std::end(uniqueIds));
+    return uniqueIds;
+
 }
 
 cv::Ptr<cv::Feature2D> FeatureDetector::getFtPtr()
@@ -117,7 +202,5 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getSURFPtr(const cv::FileStorage& fs)
         upB = true;
 
     return cv::xfeatures2d::SURF::create(hess, nOct, nOctL, extB, upB);
-
-    
 }
 } // namespace cvutils

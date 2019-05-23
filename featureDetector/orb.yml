@@ -1,6 +1,6 @@
 %YAML:1.0
 name: "orb"
-nfeatures: 500
+nfeatures: 2000
 scaleFactor: 1.2
 nlevels: 8
 edgeThreshold: 31

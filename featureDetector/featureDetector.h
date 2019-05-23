@@ -21,16 +21,35 @@ private:
     FeatureWriter mFtWriter;
     DescriptorWriter mDescWriter;
     std::filesystem::path mFtFile;
+    bool mRemoveDuplicates;
+
+    struct FeatureStruct
+    {
+        float x, y;
+        size_t idx;
+
+        FeatureStruct(const cv::KeyPoint& aFeature, size_t aIdx)
+            : x(aFeature.pt.x)
+            , y(aFeature.pt.y)
+            , idx(aIdx)
+        {
+        }
+
+        bool operator<(const FeatureStruct& rhs) const;
+        bool operator==(const FeatureStruct& rhs) const;
+    };
 
 public:
     FeatureDetector(const std::string& imgDir, const std::string& txtFile,
-            const std::string& ftDir, const std::string& ftFile, float scale);
+            const std::string& ftDir, const std::string& ftFile, float scale,
+            bool removeDuplicates);
     void run();
 private:
     cv::Ptr<cv::Feature2D> getFtPtr();
     cv::Ptr<cv::Feature2D> getORBPtr(const cv::FileStorage& fs);
     cv::Ptr<cv::Feature2D> getSIFTPtr(const cv::FileStorage& fs);
     cv::Ptr<cv::Feature2D> getSURFPtr(const cv::FileStorage& fs);
+    std::vector<size_t> getUniqueIds(const std::vector<cv::KeyPoint>& features);
 };
 }
 
