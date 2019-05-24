@@ -155,7 +155,7 @@ void FeatureMatcher::getPutativeMatches()
     size_t count = 0;
     // opencv uses parallelization internally
     // openmp for loop is not necessary and in this case even performance hindering
-    #pragma omp parallel for schedule(dynamic, 2)
+    #pragma omp parallel for schedule(dynamic, 4)
     for (size_t k = 0; k < pairList.size(); k++)
     {
         const auto pair = pairList[k];
@@ -367,7 +367,7 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv:
     std::vector<uchar> mask;
     cv::Mat mat;
     if (src.size() >= 4)
-        mat = cv::findHomography(src, dst, mask, cv::RHO, 4.0);
+        mat = cv::findHomography(src, dst, mask, cv::RANSAC);
     else
         return std::vector<uchar>(src.size(), 0);
 
