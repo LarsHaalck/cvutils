@@ -33,13 +33,15 @@ private:
     double mMinDist;
     double mMinCoverage;
     bool mCheckSymmetry;
+    cv::Mat mCamMat;
+    cv::Mat mDistCoeffs;
 
 public:
     FeatureMatcher(const std::filesystem::path& imgFolder,
         const std::filesystem::path& txtFile, const std::filesystem::path& ftFolder,
         bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
         int cacheSize, bool prune, double condition, double minDist, double minCoverage,
-        bool checkSymmetry);
+        bool checkSymmetry, const cv::Mat& camMat, const cv::Mat& distCoeffs);
 
 
     void run();

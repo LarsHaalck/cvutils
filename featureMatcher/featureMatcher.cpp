@@ -20,7 +20,7 @@ namespace cvutils
     const std::filesystem::path& ftDir,
     bool isBinary, int matcher, cvutils::GeometricType geomTypes, int window,
     int cacheSize, bool prune, double condition, double minDist, double minCoverage,
-    bool checkSymmetry)
+    bool checkSymmetry, const cv::Mat& camMat, const cv::Mat& distCoeffs)
     : mImgFolder(imgFolder)
     , mTxtFile(txtFile)
     , mFtDir(ftDir)
@@ -34,6 +34,8 @@ namespace cvutils
     , mMinDist(minDist)
     , mMinCoverage(minCoverage)
     , mCheckSymmetry(checkSymmetry)
+    , mCamMat(camMat)
+    , mDistCoeffs(distCoeffs)
 {
     mGeomTypes |= cvutils::GeometricType::Putative;
 }
@@ -147,7 +149,13 @@ void FeatureMatcher::getPutativeMatches()
     DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
     MatchesWriter matchesWriter(mFtDir, GeometricType::Putative);
 
+    std::vector<cv::Mat> descs;
+    descs.reserve(descReader.numImages());
+    for (size_t k = 0; k < descReader.numImages(); k++)
+        descs.push_back(descReader.getDescriptors(k));
+
     auto pairList = getPairList(descReader.numImages());
+    std::sort(std::begin(pairList), std::end(pairList));
     auto descMatcher = getMatcher();
 
     std::cout << "\nPutative matching..." << std::endl;
@@ -155,14 +163,17 @@ void FeatureMatcher::getPutativeMatches()
     size_t count = 0;
     // opencv uses parallelization internally
     // openmp for loop is not necessary and in this case even performance hindering
-    #pragma omp parallel for schedule(dynamic, 4)
+    #pragma omp parallel for schedule(static)
     for (size_t k = 0; k < pairList.size(); k++)
     {
         const auto pair = pairList[k];
         size_t idI = pair.first;
         size_t idJ = pair.second;
-        const auto descI = descReader.getDescriptors(idI);
-        const auto descJ = descReader.getDescriptors(idJ);
+
+        /* const auto descI = descReader.getDescriptors(idI); */
+        /* const auto descJ = descReader.getDescriptors(idJ); */
+        const auto descI = descs[idI];
+        const auto descJ = descs[idJ];
 
         auto currMatches = match(descMatcher, descI, descJ);
 
@@ -186,7 +197,14 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
     auto pairwiseMatches = MatchesReader(mFtDir, readType).moveMatches();
     MatchesWriter matchesWriter(mFtDir, writeType);
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
-    // TODO: scale
+
+    std::vector<std::vector<cv::KeyPoint>> fts;
+    fts.reserve(featReader.numImages());
+
+    for (size_t k = 0; k < featReader.numImages(); k++)
+        fts.push_back(featReader.getFeatures(k));
+
+
     ImageReader imgReader(mImgFolder, mTxtFile);
 
     std::cout << "\nGeometric verification..." << std::endl;
@@ -200,7 +218,7 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
         keys.push_back(matches.first);
 
     // for every matching image pair
-    #pragma omp parallel for schedule(dynamic, 2)
+    #pragma omp parallel for schedule(static)
     for (size_t i = 0; i < keys.size(); i++)
     {
         auto pair = keys[i];
@@ -216,6 +234,12 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
         {
             src.push_back(featsI[matches[i].queryIdx].pt);
             dst.push_back(featsJ[matches[i].trainIdx].pt);
+        }
+
+        if (!mCamMat.empty())
+        {
+            cv::undistortPoints(src, src, mCamMat, mDistCoeffs);
+            cv::undistortPoints(dst, dst, mCamMat, mDistCoeffs);
         }
 
         auto mask = getInlierMask(src, dst, writeType);

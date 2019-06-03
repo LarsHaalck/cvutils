@@ -5,6 +5,8 @@
 #include "featureMatcher.h"
 #include "io/geometricType.h"
 
+#include <opencv2/opencv.hpp>
+
 int main(int argc, char** argv)
 {
     std::string inFolder, txtFile;
@@ -18,6 +20,7 @@ int main(int argc, char** argv)
     double condition;
     double minDist;
     double minCoverage;
+    std::string camFile;
 
     cxxopts::Options options("ftMatch", "Feature matcher + export helper");
     options.add_options()
@@ -38,7 +41,8 @@ int main(int argc, char** argv)
         ("o,coverage", "min coverage of match bounding box", cxxopts::value(minCoverage))
         ("s,symmetry", "check symmetriy of matching", cxxopts::value(checkSymmetry))
         ("c,cache", "cache size (if loading all into RAM is not feasable) (< 0) means \
-            inf cache, (= 0) means no cache", cxxopts::value(cacheSize));
+            inf cache, (= 0) means no cache", cxxopts::value(cacheSize))
+        ("l,lens", "lens distortion and camera matrix file", cxxopts::value(camFile));
 
     auto result = options.parse(argc, argv);
     if (result.count("in") != 1
@@ -104,8 +108,19 @@ int main(int argc, char** argv)
     if (result.count("symmetry") != 1)
             checkSymmetry = false;
 
+
+    cv::Mat camMat;
+    cv::Mat distCoeffs;
+    if (!camFile.empty())
+    {
+        cv::FileStorage fs(camFile, cv::FileStorage::READ);
+        fs["camera_matrix"] >> camMat;
+        fs["distortion_coefficients"] >> distCoeffs;
+    }
+
     cvutils::FeatureMatcher ftMatcher(inFolder, txtFile, ftFolder, isBinary, matcher,
-        types, window, cacheSize, prune, condition, minDist, minCoverage, checkSymmetry);
+        types, window, cacheSize, prune, condition, minDist, minCoverage, checkSymmetry,
+        camMat, distCoeffs);
     ftMatcher.run();
 
     return 0;
