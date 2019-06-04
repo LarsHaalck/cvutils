@@ -35,8 +35,11 @@ namespace cvutils
     , mMinCoverage(minCoverage)
     , mCheckSymmetry(checkSymmetry)
     , mCamMat(camMat)
+    , mCamMatInv()
     , mDistCoeffs(distCoeffs)
 {
+    if (!mCamMat.empty())
+        cv::invert(mCamMat, mCamMatInv);
     mGeomTypes |= cvutils::GeometricType::Putative;
 }
 

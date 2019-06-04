@@ -34,6 +34,7 @@ private:
     double mMinCoverage;
     bool mCheckSymmetry;
     cv::Mat mCamMat;
+    cv::Mat mCamMatInv;
     cv::Mat mDistCoeffs;
 
 public:
