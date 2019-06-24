@@ -57,10 +57,7 @@ void FeatureDetector::run()
 
         ftPtr->compute(img, features, descriptors);
 
-        /* for (const auto& elem : features) */
-        /*     std::cout << elem.pt.x << ", " << elem.pt.y << std::endl; */
-
-
+        /* std::cout << features.size() << std::endl; */
         mFtWriter.writeFeatures(mReader.getImageName(i), features);
         mDescWriter.writeDescriptors(mReader.getImageName(i), descriptors);
 

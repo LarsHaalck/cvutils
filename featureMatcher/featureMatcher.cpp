@@ -149,13 +149,8 @@ std::vector<cv::DMatch> FeatureMatcher::keepSymmetricMatches(
 
 void FeatureMatcher::getPutativeMatches()
 {
-    DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
+    DescriptorReader descReader(mImgFolder, mTxtFile, mFtDir);
     MatchesWriter matchesWriter(mFtDir, GeometricType::Putative);
-
-    std::vector<cv::Mat> descs;
-    descs.reserve(descReader.numImages());
-    for (size_t k = 0; k < descReader.numImages(); k++)
-        descs.push_back(descReader.getDescriptors(k));
 
     auto pairList = getPairList(descReader.numImages());
     std::sort(std::begin(pairList), std::end(pairList));
@@ -164,32 +159,47 @@ void FeatureMatcher::getPutativeMatches()
     std::cout << "\nPutative matching..." << std::endl;
     tqdm bar;
     size_t count = 0;
-    // opencv uses parallelization internally
-    // openmp for loop is not necessary and in this case even performance hindering
-    #pragma omp parallel for schedule(static)
-    for (size_t k = 0; k < pairList.size(); k++)
+
+    size_t cacheSize = (mCacheSize) ? mCacheSize : pairList.size();
+    for (size_t i = 0; i < (pairList.size() + mCacheSize - 1) / mCacheSize; i++)
     {
-        const auto pair = pairList[k];
-        size_t idI = pair.first;
-        size_t idJ = pair.second;
+        size_t start = i * cacheSize;
+        size_t end = std::min((i + 1) * cacheSize, pairList.size());
 
-        /* const auto descI = descReader.getDescriptors(idI); */
-        /* const auto descJ = descReader.getDescriptors(idJ); */
-        const auto descI = descs[idI];
-        const auto descJ = descs[idJ];
+        std::vector<cv::Mat> descs;
+        descs.reserve(2 * cacheSize);
 
-        auto currMatches = match(descMatcher, descI, descJ);
-
-        if (mCheckSymmetry)
+        for (size_t k = start; k < end; k++)
         {
-            auto currMatches1 = match(descMatcher, descJ, descI);
-            currMatches = keepSymmetricMatches(currMatches, currMatches1);
+            auto pair = pairList[k];
+            descs.push_back(descReader.getDescriptors(pair.first));
+            descs.push_back(descReader.getDescriptors(pair.second));
         }
 
-        #pragma omp critical
+        // opencv uses parallelization internally
+        // openmp for loop is not necessary and in this case even performance hindering
+        #pragma omp parallel for schedule(static)
+        for (size_t k = start; k < end; k++)
         {
-            matchesWriter.writeMatches(idI, idJ, std::move(currMatches));
-            bar.progress(count++, pairList.size());
+            auto pair = pairList[k];
+            size_t idI = pair.first;
+            size_t idJ = pair.second;
+
+            const auto descI = descs[2 * (k - start)];
+            const auto descJ = descs[2 * (k - start) + 1];
+
+            auto currMatches = match(descMatcher, descI, descJ);
+            if (mCheckSymmetry)
+            {
+                auto currMatches1 = match(descMatcher, descJ, descI);
+                currMatches = keepSymmetricMatches(currMatches, currMatches1);
+            }
+
+            #pragma omp critical
+            {
+                matchesWriter.writeMatches(idI, idJ, std::move(currMatches));
+                bar.progress(count++, pairList.size());
+            }
         }
     }
 }
@@ -199,82 +209,92 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
 {
     auto pairwiseMatches = MatchesReader(mFtDir, readType).moveMatches();
     MatchesWriter matchesWriter(mFtDir, writeType);
-    FeatureReader featReader(mImgFolder, mTxtFile, mFtDir, mCacheSize);
-
-    std::vector<std::vector<cv::KeyPoint>> fts;
-    fts.reserve(featReader.numImages());
-
-    for (size_t k = 0; k < featReader.numImages(); k++)
-        fts.push_back(featReader.getFeatures(k));
-
-
+    FeatureReader featReader(mImgFolder, mTxtFile, mFtDir);
     ImageReader imgReader(mImgFolder, mTxtFile);
 
     std::cout << "\nGeometric verification..." << std::endl;
     tqdm bar;
     size_t count = 0;
 
-    std::vector<std::pair<size_t, size_t>> keys;
-    keys.reserve(pairwiseMatches.size());
+    std::vector<std::pair<size_t, size_t>> pairList;
+    pairList.reserve(pairwiseMatches.size());
 
     for(const auto& matches : pairwiseMatches)
-        keys.push_back(matches.first);
+        pairList.push_back(matches.first);
 
-    // for every matching image pair
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < keys.size(); i++)
+    size_t cacheSize = (mCacheSize) ? mCacheSize : pairList.size();
+    for (size_t i = 0; i < (pairList.size() + mCacheSize - 1) / mCacheSize; i++)
     {
-        auto pair = keys[i];
-        auto idI = pair.first;
-        auto idJ = pair.second;
-        auto matches = std::move(pairwiseMatches[pair]);
-        const auto featsI = featReader.getFeatures(idI);
-        const auto featsJ = featReader.getFeatures(idJ);
+        size_t start = i * cacheSize;
+        size_t end = std::min((i + 1) * cacheSize, pairList.size());
 
-        //build point matrices
-        std::vector<cv::Point2f> src, dst;
-        for (size_t i = 0; i < matches.size(); i++)
+        std::vector<std::vector<cv::KeyPoint>> feats;
+        feats.reserve(2 * cacheSize);
+
+        for (size_t k = start; k < end; k++)
         {
-            src.push_back(featsI[matches[i].queryIdx].pt);
-            dst.push_back(featsJ[matches[i].trainIdx].pt);
+            auto pair = pairList[k];
+            feats.push_back(featReader.getFeatures(pair.first));
+            feats.push_back(featReader.getFeatures(pair.second));
         }
 
-        if (!mCamMat.empty())
+        // for every matching image pair
+        #pragma omp parallel for schedule(static)
+        for (size_t k = start; k < end; k++)
         {
-            cv::undistortPoints(src, src, mCamMat, mDistCoeffs);
-            cv::undistortPoints(dst, dst, mCamMat, mDistCoeffs);
-        }
+            auto pair = pairList[k];
+            auto idI = pair.first;
+            auto idJ = pair.second;
+            auto matches = std::move(pairwiseMatches[pair]);
 
-        auto mask = getInlierMask(src, dst, writeType);
-        std::vector<cv::DMatch> filteredMatches;
-        std::vector<cv::Point2f> srcFiltered, dstFiltered;
-        for (size_t r = 0; r < mask.size(); r++)
-        {
-            if (mask[r])
+            auto featsI = feats[2 * (k - start)];
+            auto featsJ = feats[2 * (k - start) + 1];
+
+            //build point matrices
+            std::vector<cv::Point2f> src, dst;
+            for (size_t i = 0; i < matches.size(); i++)
             {
-               filteredMatches.push_back(matches[r]);
-               srcFiltered.push_back(src[r]);
-               dstFiltered.push_back(dst[r]);
+                src.push_back(featsI[matches[i].queryIdx].pt);
+                dst.push_back(featsJ[matches[i].trainIdx].pt);
             }
-        }
 
-        if (mMinCoverage)
-        {
-            int rectI = cv::boundingRect(srcFiltered).area();
-            int rectJ = cv::boundingRect(dstFiltered).area();
-            int areaI = imgReader.getImage(idI).rows * imgReader.getImage(idI).cols;
-            int areaJ = imgReader.getImage(idJ).rows * imgReader.getImage(idJ).cols;
-            if (rectI < mMinCoverage * areaI || rectJ < mMinCoverage * areaJ)
-                filteredMatches.clear();
+            if (!mCamMat.empty())
+            {
+                cv::undistortPoints(src, src, mCamMat, mDistCoeffs);
+                cv::undistortPoints(dst, dst, mCamMat, mDistCoeffs);
+            }
 
-        }
+            auto mask = getInlierMask(src, dst, writeType);
+            std::vector<cv::DMatch> filteredMatches;
+            std::vector<cv::Point2f> srcFiltered, dstFiltered;
+            for (size_t r = 0; r < mask.size(); r++)
+            {
+                if (mask[r])
+                {
+                   filteredMatches.push_back(matches[r]);
+                   srcFiltered.push_back(src[r]);
+                   dstFiltered.push_back(dst[r]);
+                }
+            }
 
-        matches = std::move(filteredMatches);
+            if (mMinCoverage)
+            {
+                int rectI = cv::boundingRect(srcFiltered).area();
+                int rectJ = cv::boundingRect(dstFiltered).area();
+                int areaI = imgReader.getImage(idI).rows * imgReader.getImage(idI).cols;
+                int areaJ = imgReader.getImage(idJ).rows * imgReader.getImage(idJ).cols;
+                if (rectI < mMinCoverage * areaI || rectJ < mMinCoverage * areaJ)
+                    filteredMatches.clear();
 
-        #pragma omp critical
-        {
-            matchesWriter.writeMatches(idI, idJ, std::move(matches));
-            bar.progress(count++, keys.size());
+            }
+
+            matches = std::move(filteredMatches);
+
+            #pragma omp critical
+            {
+                matchesWriter.writeMatches(idI, idJ, std::move(matches));
+                bar.progress(count++, pairList.size());
+            }
         }
     }
 
