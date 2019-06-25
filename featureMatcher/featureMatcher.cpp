@@ -161,7 +161,7 @@ void FeatureMatcher::getPutativeMatches()
     size_t count = 0;
 
     size_t cacheSize = (mCacheSize) ? mCacheSize : pairList.size();
-    for (size_t i = 0; i < (pairList.size() + mCacheSize - 1) / mCacheSize; i++)
+    for (size_t i = 0; i < (pairList.size() + cacheSize - 1) / cacheSize; i++)
     {
         size_t start = i * cacheSize;
         size_t end = std::min((i + 1) * cacheSize, pairList.size());
@@ -223,7 +223,7 @@ void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
         pairList.push_back(matches.first);
 
     size_t cacheSize = (mCacheSize) ? mCacheSize : pairList.size();
-    for (size_t i = 0; i < (pairList.size() + mCacheSize - 1) / mCacheSize; i++)
+    for (size_t i = 0; i < (pairList.size() + cacheSize - 1) / cacheSize; i++)
     {
         size_t start = i * cacheSize;
         size_t end = std::min((i + 1) * cacheSize, pairList.size());

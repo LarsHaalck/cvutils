@@ -40,8 +40,8 @@ int main(int argc, char** argv)
         ("d,distance", "min distance for flann based", cxxopts::value(minDist))
         ("o,coverage", "min coverage of match bounding box", cxxopts::value(minCoverage))
         ("s,symmetry", "check symmetriy of matching", cxxopts::value(checkSymmetry))
-        ("c,cache", "cache size (if loading all into RAM is not feasable) (< 0) means \
-            inf cache, (= 0) means no cache", cxxopts::value(cacheSize))
+        ("c,cache", "cache size (if loading all into RAM is not feasable) (= 0) means \
+            inf cache, (= 1) means no cache", cxxopts::value(cacheSize))
         ("l,lens", "lens distortion and camera matrix file", cxxopts::value(camFile));
 
     auto result = options.parse(argc, argv);
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     }
 
     if (result.count("cache") != 1)
-            cacheSize = -1;
+            cacheSize = 0;
     if (result.count("prune") != 1)
         prune = false;
     if (result.count("condition") != 1)
