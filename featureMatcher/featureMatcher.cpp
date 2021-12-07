@@ -47,11 +47,17 @@ void FeatureMatcher::run()
 {
     getPutativeMatches();
 
+    auto fun = cvutils::GeometricType::Fundamental;
     auto hom = cvutils::GeometricType::Homography;
     auto aff = cvutils::GeometricType::Affinity;
     auto sim = cvutils::GeometricType::Similarity;
     auto iso = cvutils::GeometricType::Isometry;
 
+    if (static_cast<unsigned int>(mGeomTypes & fun))
+    {
+        getGeomMatches(fun, findNextBestModel(fun));
+        filterMatches(fun);
+    }
     if (static_cast<unsigned int>(mGeomTypes & hom))
     {
         getGeomMatches(hom, findNextBestModel(hom));
@@ -96,6 +102,10 @@ cvutils::GeometricType FeatureMatcher::findNextBestModel(
                 return geom::Homography;
             [[fallthrough]];
         case geom::Homography:
+            if (static_cast<unsigned int>(mGeomTypes & geom::Fundamental))
+                return geom::Fundamental;
+            [[fallthrough]];
+        case geom::Fundamental:
             return geom::Putative;
         default:
             return geom::Undefined;
@@ -207,6 +217,7 @@ void FeatureMatcher::getPutativeMatches()
 void FeatureMatcher::getGeomMatches(cvutils::GeometricType writeType,
     cvutils::GeometricType readType)
 {
+    std::cout << static_cast<unsigned int>(writeType) << ": " << static_cast<unsigned int>(readType) << std::endl;
     auto pairwiseMatches = MatchesReader(mFtDir, readType).moveMatches();
     MatchesWriter matchesWriter(mFtDir, writeType);
     FeatureReader featReader(mImgFolder, mTxtFile, mFtDir);
@@ -354,6 +365,8 @@ std::vector<uchar> FeatureMatcher::getInlierMask(const std::vector<cv::Point2f>&
             return getInlierMaskAffinity(src, dst);
         case cvutils::GeometricType::Homography:
             return getInlierMaskHomography(src, dst);
+        case cvutils::GeometricType::Fundamental:
+            return getInlierMaskFundamental(src, dst);
         default:
             return mask;
     }
@@ -430,6 +443,22 @@ std::vector<uchar> FeatureMatcher::getInlierMaskHomography(const std::vector<cv:
         if (conditionNumber > mCondition)
             return std::vector<uchar>(src.size(), 0);
     }
+
+    return mask;
+}
+
+std::vector<uchar> FeatureMatcher::getInlierMaskFundamental(const std::vector<cv::Point2f>& src,
+    const std::vector<cv::Point2f>& dst)
+{
+    std::vector<uchar> mask;
+    cv::Mat mat;
+    if (src.size() >= 6)
+        mat = cv::findFundamentalMat(src, dst, mask, cv::RANSAC);
+    else
+        return std::vector<uchar>(src.size(), 0);
+
+    if (getInlierCount(mask) < 6 * 2.5)
+        return std::vector<uchar>(src.size(), 0);
 
     return mask;
 }

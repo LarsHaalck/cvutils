@@ -19,6 +19,8 @@ const std::string geometricTypeToFileName(cvutils::GeometricType type)
             return matchesAffineName;
         case cvutils::GeometricType::Homography:
             return matchesHomographyName;
+        case cvutils::GeometricType::Fundamental:
+            return matchesFundamentalName;
         default:
             return "";
     }

@@ -10,7 +10,8 @@ enum class GeometricType : unsigned int
     Similarity = 0x2,
     Affinity = 0x4,
     Homography = 0x8,
-    Putative = 0x10,
+    Fundamental = 0x10,
+    Putative = 0x20,
 };
 
 inline constexpr GeometricType operator&(GeometricType x, GeometricType y)

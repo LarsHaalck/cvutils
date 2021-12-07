@@ -9,10 +9,10 @@ namespace cvutils
 {
 namespace detail
 {
-constexpr auto ftEnding = "-ft.bin";
+constexpr auto ftEnding = "-ft.sift.bin";
 constexpr auto ftKey = "pts";
 
-constexpr auto descEnding = "-desc.bin";
+constexpr auto descEnding = "-desc.sift.bin";
 constexpr auto descKey = "desc";
 
 constexpr auto matchesPutativeName = "matches-putative.bin";
@@ -20,6 +20,7 @@ constexpr auto matchesIsometryName = "matches-isometry.bin";
 constexpr auto matchesSimilarityName = "matches-similarity.bin";
 constexpr auto matchesAffineName = "matches-affinity.bin";
 constexpr auto matchesHomographyName = "matches-homography.bin";
+constexpr auto matchesFundamentalName = "matches-fundamental.bin";
 
 const std::string geometricTypeToFileName(cvutils::GeometricType type);
 

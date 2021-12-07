@@ -77,6 +77,8 @@ private:
         const std::vector<cv::Point2f>& dst);
     std::vector<uchar> getInlierMaskHomography(const std::vector<cv::Point2f>& src,
         const std::vector<cv::Point2f>& dst);
+    std::vector<uchar> getInlierMaskFundamental(const std::vector<cv::Point2f>& src,
+        const std::vector<cv::Point2f>& dst);
 
     inline size_t getInlierCount(const std::vector<uchar>& mask)
     {

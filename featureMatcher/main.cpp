@@ -78,6 +78,9 @@ int main(int argc, char** argv)
             case 'h':
                 types |= cvutils::GeometricType::Homography;
                 break;
+            case 'f':
+                types |= cvutils::GeometricType::Fundamental;
+                break;
         }
     }
 
