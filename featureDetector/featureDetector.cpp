@@ -178,7 +178,7 @@ cv::Ptr<cv::Feature2D> FeatureDetector::getSIFTPtr(const cv::FileStorage& fs)
     auto et = static_cast<double>(fs["edgeThreshold"]);
     auto s = static_cast<double>(fs["sigma"]);
 
-    return cv::xfeatures2d::SIFT::create(nf, no, ct, et, s);
+    return cv::SIFT::create(nf, no, ct, et, s);
 }
 cv::Ptr<cv::Feature2D> FeatureDetector::getSURFPtr(const cv::FileStorage& fs)
 {
